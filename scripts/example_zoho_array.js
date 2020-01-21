@@ -2,10 +2,28 @@ require('dotenv').config();
 
 // Zoho examples
 const ZohoClass = require('../class/Zoho');
-
 const Zoho = new ZohoClass();
 
-Zoho.SearchFromArray("ImportacaoTeste", [{ "foo1": "00T1Q00003vNfrqUAC" }, { "foo1": "00T1Q00003vO47JUAS" }], "(Id1:equals:$_foo1)")
+const GroupBy = require('../utility/GroupBy.js');
+const ParseArray = require('../utility/ParseArray.js');
+
+let myData = [{ "id": "00T1Q00003vNfrqUAC", "description": "ABC" }, { "id": "00T1Q00003vO47JUAS", "description": "DEF" }];
+
+Zoho.SearchFromArray("ImportacaoTeste", myData, "(Id1:equals:$_id)")
 .then(search_results => {
-  console.log(search_results);
+
+  ParseArray.parse(search_results,  { "Id1":"Id1", "Name":"Name" })
+  .then(parsed => {
+
+    const group_results = GroupBy.group(parsed, "Id1");
+
+    // Group the two arrays together
+    myData.map(row => {
+      row.Product_Details = (group_results.hasOwnProperty(row.id) ? group_results[row.id] : []);
+    });
+
+    console.log(myData[0]);
+
+  });
+
 });

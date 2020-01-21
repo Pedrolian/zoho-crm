@@ -9,7 +9,7 @@ module.exports.parse = function (data, keys_obj, flags)
     resolve( data.map(row => {
       let return_obj = {};
       Object.keys(keys_obj).map(key => {
-        if(row.hasOwnProperty(key) || flags.includes("sc"))
+        if(row.hasOwnProperty(key) || !flags.includes("c"))
           return_obj = { ...return_obj, [keys_obj[key]]: row[key] };
       });
       return return_obj;
