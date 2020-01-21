@@ -5,7 +5,7 @@ module.exports.replace = function (data, str) {
   if(str.match(/\$(\w+)/g) != null)
   {
     str.match(/\$(\w+)/g).map(key => {
-      tmpStr = str.replace(key, data[key.replace("$_", "")]);
+      tmpStr = tmpStr.replace(key, data[key.replace("$_", "")]);
     });
   }
   return removeDiacritics.replace(tmpStr);
