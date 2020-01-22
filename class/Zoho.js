@@ -1,6 +1,8 @@
 require('dotenv').config();
 const ZCRMRestClient = require('zcrmsdk');
 
+const _ = require('lodash');
+
 const DataReplace = require('../utility/DataReplaceString.js');
 const RemoveDiacritics = require('../utility/RemoveDiactric.js');
 const ReplaceKey = require('../utility/ReplaceKey.js');
@@ -16,28 +18,25 @@ module.exports = class Zoho {
   /*
   Search a module
   */
-  SearchFromArray(module, data, criteria, cb)
+  Search(module, criteria, data)
   {
-    // Create search obj
-    let search_array = [];
-    data.map(row => {
-      search_array.push(this.DataReplace(row, criteria));
-    });
 
-    //
-    return new Promise((resolve, reject) => {
-      this.Search(module, `(${search_array.join("OR")})`)
-      .then(search_results => {
-        resolve(search_results);
+    data = data || false;
+    let search_criteria = criteria;
+
+    if(data)
+    {
+      // Create search obj
+      let search_array = [];
+      data.map(row => {
+        search_array.push(this.DataReplace(row, criteria));
       });
-    });
-  }
+      search_criteria = `(${search_array.join("OR")})`;
+    }
 
-  Search(module, criteria)
-  {
-    console.log(`Search -- Module: [${module}] Criteria: [${criteria}]`);
+    console.log(`Search -- Module: [${module}] Criteria: [${search_criteria}]`);
     return new Promise((resolve, reject) => {
-      this._search(module, criteria, 1, 200, [], (results) => {
+      this._search(module, search_criteria, 1, 200, [], (results) => {
         resolve(results);
       });
     });
@@ -68,5 +67,114 @@ module.exports = class Zoho {
     }
   }
 
+  /**
+  * Update a module
+  **/
+  Update(module, data)
+  {
+    data = Array.isArray(data) ? data : [data];
+    return new Promise((resolve, reject) => {
+      try {
+        const chunks = _.chunk(data, 100);
+        this._update(module, chunks, tmp => {
+          resolve();
+        });
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
+  _update(module, data, cb)
+  {
+    const tmpData = data[0];
+    data.shift();
+    try
+    {
+      ZCRMRestClient.API.MODULES.put({ module: module, body: { data: tmpData } })
+      .then((response) =>
+      {
+        const response_data = JSON.parse(response.body).data;
+        response_data.map(res =>
+        {
+          if(res.status != "success")
+          {
+            console.log(`Update Error:`);
+            console.table(data);
+            console.table(res);
+            console.log(`----------------`);
+          }
+          else
+            console.log(`Updated -- Module: [${module}] ID: [${res.details.id}]`);
+          //
+          if(data.length)
+            return this._update(module, data, cb);
+          else
+            return cb();
+        });
+      });
+    } catch (e) {
+      //
+      if(data.length)
+        return this._update(module, data, cb);
+      else
+        return cb();
+    }
+  }
+
+  /**
+  * Insert to module
+  **/
+  Insert(module, data)
+  {
+    data = Array.isArray(data) ? data : [data];
+    return new Promise((resolve, reject) => {
+      try {
+        const chunks = _.chunk(data, 100);
+        this._insert(module, chunks, tmp => {
+          resolve();
+        });
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
+  _insert(module, data, cb)
+  {
+    const tmpData = data[0];
+    data.shift();
+    try
+    {
+      ZCRMRestClient.API.MODULES.post({ module: module, body: { data: tmpData } })
+      .then((response) =>
+      {
+        const response_data = JSON.parse(response.body).data;
+        response_data.map(res =>
+        {
+          if(res.status != "success")
+          {
+            console.log(`Insert Error:`);
+            console.table(data);
+            console.table(res);
+            console.log(`----------------`);
+          }
+          else
+            console.log(`Insert -- Module: [${module}] ID: [${res.details.id}]`);
+          //
+          if(data.length)
+            return this._insert(module, data, cb);
+          else
+            return cb();
+        });
+      });
+    } catch (e) {
+      //
+      if(data.length)
+        return this._update(module, data, cb);
+      else
+        return cb();
+    }
+  }
 
 }
