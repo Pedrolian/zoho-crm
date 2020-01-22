@@ -5,14 +5,14 @@ const ZohoClass = require('../class/Zoho');
 const Zoho = new ZohoClass();
 
 const GroupBy = require('../utility/GroupBy.js');
-const ParseArray = require('../utility/ParseArray.js');
+const ReplaceKey = require('../utility/ReplaceKey.js');
 
 let myData = [{ "id": "00T1Q00003vNfrqUAC", "description": "ABC" }, { "id": "00T1Q00003vO47JUAS", "description": "DEF" }];
 
 Zoho.SearchFromArray("ImportacaoTeste", myData, "(Id1:equals:$_id)")
 .then(search_results => {
 
-  ParseArray.parse(search_results,  { "Id1":"Id1", "Name":"Name" })
+  ReplaceKey.replace(search_results,  { "Id1":"Id1", "Name":"Name" })
   .then(parsed => {
 
     const group_results = GroupBy.group(parsed, "Id1");

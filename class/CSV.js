@@ -1,6 +1,8 @@
 const csv = require('csv-parser');
 const fs = require('fs');
 
+const _ = require('lodash');
+
 module.exports = class CSV {
 
   constructor(file, options) {
@@ -18,11 +20,7 @@ module.exports = class CSV {
       .on('data', (data) => {
         if(this.file_options.hasOwnProperty("whitelist"))
         {
-          let return_obj = {};
-          this.file_options.whitelist.map(key => {
-            return_obj = { ...return_obj, [key]: data[key] };
-          });
-          this.rows.push(return_obj);
+          this.rows.push(_.pick(data, this.file_options.whitelist));
         }
         else
           this.rows.push(data);

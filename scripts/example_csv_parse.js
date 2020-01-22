@@ -1,5 +1,5 @@
 // CSV examples
-const ParseArray = require('../utility/ParseArray.js');
+const ReplaceKey = require('../utility/ReplaceKey.js');
 const CsvClass = require('../class/CSV');
 
 const csv = new CsvClass('../data/ImportacaoTeste_Data.csv', { "separator": "," });
@@ -18,12 +18,12 @@ csv2.ParseFile()
   Object.keys(csv_parsed[0]).map(key => { myObj = { ...myObj, [key]: key } });
   console.log(myObj);
 
-  const test3 = ParseArray.parse(csv_parsed,  { ...myObj, "id": "ID" })
+  const test3 = ReplaceKey.replace(csv_parsed,  { ...myObj, "id": "ID" })
   .then(parsed => {
     console.table(parsed);
   });
 
-  const test4 = ParseArray.parse(csv_parsed,  { "id": "ID" })
+  const test4 = ReplaceKey.replace(csv_parsed,  { "id": "ID" })
   .then(parsed => {
     console.table(parsed);
   });

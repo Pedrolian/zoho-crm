@@ -1,4 +1,4 @@
-module.exports.parse = function (data, keys_obj, flags)
+module.exports.replace = function (data, keys_obj, flags)
 {
 
   flags = flags || "";
