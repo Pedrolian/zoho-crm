@@ -14,7 +14,7 @@ const _ = require('lodash');
 const csv = new CsvClass('../../data/ImportacaoTeste_Data.csv', { "separator": "," });
 csv.ParseFile().then(data => {
 
-  data = ReplaceKey.exchange(data, { "id": "Id1", "Description": "Description" });
+  data = ReplaceKey.exchange(data, { "id": "Id1" });
   console.table(data);
 
   const csv_products = new CsvClass('../../data/ImportacaoTeste_Produtos.csv', { "separator": "," });
@@ -30,9 +30,12 @@ csv.ParseFile().then(data => {
 
     // Attach products to each parent Id1
     data = data.map(tmp => {
-      return { ...tmp, "Product_Details": grouped_products[tmp.Id1] }
+      return { ...tmp, "Product_Details": grouped_products.hasOwnProperty(tmp.Id1) ? grouped_products[tmp.Id1] : [] }
     });
     //console.table(data[0]);
+
+    // Filter - Remove from data with empty Product_Details
+    data = _.filter(data, function(row) { return row.Product_Details.length > 0; });
 
     // Search zoho for entries with criteria with Id1
     Zoho.Search("ImportacaoTeste", "(Id1:equals:$_Id1)", data)
