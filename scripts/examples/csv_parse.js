@@ -1,14 +1,14 @@
 // CSV examples
-const ReplaceKey = require('../utility/ReplaceKey.js');
-const CsvClass = require('../class/CSV');
+const ReplaceKey = require('../../utility/ReplaceKey.js');
+const CsvClass = require('../../class/CSV');
 
-const csv = new CsvClass('../data/ImportacaoTeste_Data.csv', { "separator": "," });
+const csv = new CsvClass('../../data/ImportacaoTeste_Data.csv', { "separator": "," });
 csv.ParseFile()
 .then(csv_parsed => {
   console.table(csv_parsed);
 });
 
-const csv2 = new CsvClass('../data/ImportacaoTeste_Data.csv', { "separator": ",", "whitelist": ["id", "Description"] });
+const csv2 = new CsvClass('../../data/ImportacaoTeste_Data.csv', { "separator": ",", "whitelist": ["id", "Description"] });
 csv2.ParseFile()
 .then(csv_parsed => {
 

@@ -1,11 +1,11 @@
 require('dotenv').config();
 
 // Zoho examples
-const ZohoClass = require('../class/Zoho');
+const ZohoClass = require('../../class/Zoho');
 const Zoho = new ZohoClass();
 
-const GroupBy = require('../utility/GroupBy.js');
-const ReplaceKey = require('../utility/ReplaceKey.js');
+const GroupBy = require('../../utility/GroupBy.js');
+const ReplaceKey = require('../../utility/ReplaceKey.js');
 
 let myData = [{ "id": "00T1Q00003vNfrqUAC", "description": "ABC" }, { "id": "00T1Q00003vO47JUAS", "description": "DEF" }];
 

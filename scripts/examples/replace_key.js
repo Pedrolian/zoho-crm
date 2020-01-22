@@ -1,5 +1,5 @@
 // Parse examples
-const ReplaceKey = require('../utility/ReplaceKey.js');
+const ReplaceKey = require('../../utility/ReplaceKey.js');
 
 const test = ReplaceKey.replace([{ "id": "00T1Q00003vNfrqUAC" },{ "id": "00T1Q00003vO47JUAS" }],  { "id": "ID", "description": "desc" })
   .then(parsed => {

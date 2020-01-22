@@ -3,14 +3,14 @@ const ZCRMRestClient = require('zcrmsdk');
 
 const DataReplace = require('../utility/DataReplaceString.js');
 const RemoveDiacritics = require('../utility/RemoveDiactric.js');
-const ParseArray = require('../utility/ParseArray.js');
+const ReplaceKey = require('../utility/ReplaceKey.js');
 
 module.exports = class Zoho {
 
   constructor() {
     this.RemoveDiacritics = RemoveDiacritics.replace;
     this.DataReplace = DataReplace.replace;
-    this.ParseArray = ParseArray.parse;
+    this.ReplaceKey = ReplaceKey.replace;
   }
 
   /*

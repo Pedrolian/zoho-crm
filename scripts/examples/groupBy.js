@@ -1,5 +1,5 @@
 // Chunk examples
-const GroupBy = require('../utility/GroupBy.js');
+const GroupBy = require('../../utility/GroupBy.js');
 
 const myArray = [
   { "rid": "00T1Q00003vNfrqUAC", "product": "ABC", "price": 10.25 },

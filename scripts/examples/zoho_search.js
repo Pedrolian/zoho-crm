@@ -1,7 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({path: '../../.env'});
 
 // Zoho examples
-const ZohoClass = require('../class/Zoho');
+const ZohoClass = require('../../class/Zoho');
 
 const Zoho = new ZohoClass();
 
