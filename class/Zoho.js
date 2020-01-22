@@ -75,10 +75,17 @@ module.exports = class Zoho {
     data = Array.isArray(data) ? data : [data];
     return new Promise((resolve, reject) => {
       try {
-        const chunks = _.chunk(data, 100);
-        this._update(module, chunks, tmp => {
+
+        if(!data.length)
           resolve();
-        });
+        else
+        {
+          const chunks = _.chunk(data, 100);
+          this._update(module, chunks, tmp => {
+            resolve();
+          });
+        }
+
       } catch (e) {
         resolve();
       }
@@ -130,10 +137,15 @@ module.exports = class Zoho {
     data = Array.isArray(data) ? data : [data];
     return new Promise((resolve, reject) => {
       try {
-        const chunks = _.chunk(data, 100);
-        this._insert(module, chunks, tmp => {
+        if(!data.length)
           resolve();
-        });
+        else
+        {
+          const chunks = _.chunk(data, 100);
+          this._insert(module, chunks, tmp => {
+            resolve();
+          });
+        }
       } catch (e) {
         resolve();
       }
