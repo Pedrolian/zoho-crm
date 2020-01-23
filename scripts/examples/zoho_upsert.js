@@ -51,14 +51,13 @@ Zoho.Search("ImportacaoTeste", "(Id1:equals:$_record_id)", myData)
     console.log(`Updating ${update_results.length} records.`);
     Zoho.Update("ImportacaoTeste", update_results)
     .then(() => {
-
       console.log(`All updates finished.`);
-      console.log(`Inserting ${insert_results.length} records.`);
-      Zoho.Insert("ImportacaoTeste", insert_results)
-      .then(() => {
-        console.log(`All inserts finished.`);
-      });
+    });
 
+    console.log(`Inserting ${insert_results.length} records.`);
+    Zoho.Insert("ImportacaoTeste", insert_results)
+    .then(() => {
+      console.log(`All inserts finished.`);
     });
 
   });
