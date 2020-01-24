@@ -10,6 +10,7 @@ const ReplaceKey = require('../utility/ReplaceKey.js');
 module.exports = class Zoho {
 
   constructor() {
+    this.ZCRMRestClient = ZCRMRestClient;
     this.RemoveDiacritics = RemoveDiacritics.replace;
     this.DataReplace = DataReplace.replace;
     this.ReplaceKey = ReplaceKey.exchange;
