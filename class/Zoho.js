@@ -101,30 +101,42 @@ module.exports = class Zoho {
       ZCRMRestClient.API.MODULES.put({ module: module, body: { data: tmpData } })
       .then((response) =>
       {
-        let res_counter = 0;
-        const response_data = JSON.parse(response.body).data;
-        response_data.map(res =>
+        try
         {
 
-          if(res.status != "success")
+          let res_counter = 0;
+          const response_data = JSON.parse(response.body).data;
+          response_data.map(res =>
           {
-            console.log(`Update Error:`);
-            console.table(tmpData[res_counter]);
-            console.table(res);
-            console.log(`----------------`);
-          }
+
+            if(res.status != "success")
+            {
+              console.log(`Update Error:`);
+              console.table(tmpData[res_counter]);
+              console.table(res);
+              console.log(`----------------`);
+            }
+            else
+              console.log(`Updated -- Module: [${module}] ID: [${res.details.id}]`);
+
+            res_counter++;
+
+          });
+
+          if(data.length)
+            return this._update(module, data, cb);
           else
-            console.log(`Updated -- Module: [${module}] ID: [${res.details.id}]`);
+            return cb();
 
-          res_counter++;
-
-        });
-
-        if(data.length)
-          return this._update(module, data, cb);
-        else
-          return cb();
-
+        }
+        catch (e)
+        {
+          console.log(JSON.parse(response.body));
+          if(data.length)
+            return this._update(module, data, cb);
+          else
+            return cb();
+        }
       });
     } catch (e) {
       //
@@ -193,6 +205,7 @@ module.exports = class Zoho {
             return cb();
 
         } catch (e) {
+          console.log(JSON.parse(response.body));
           if(data.length)
             return this._insert(module, data, cb);
           else
