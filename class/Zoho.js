@@ -12,7 +12,7 @@ module.exports = class Zoho {
   constructor() {
     this.RemoveDiacritics = RemoveDiacritics.replace;
     this.DataReplace = DataReplace.replace;
-    this.ReplaceKey = ReplaceKey.replace;
+    this.ReplaceKey = ReplaceKey.exchange;
   }
 
   /*
@@ -34,7 +34,7 @@ module.exports = class Zoho {
       search_criteria = `(${search_array.join("OR")})`;
     }
 
-    console.log(`Search -- Module: [${module}] Criteria: [${search_criteria}]`);
+    //console.log(`Search -- Module: [${module}] Criteria: [${search_criteria}]`);
     return new Promise((resolve, reject) => {
       this._search(module, search_criteria, 1, 200, [], (results) => {
         resolve(results);
@@ -52,7 +52,7 @@ module.exports = class Zoho {
         try {
           const response_data = JSON.parse(response.body);
           results = results.concat(response_data.data);
-          console.log(`Search -- Module: [${module}] Response: ${response_data.data.length} - Total: ${results.length}`);
+          //console.log(`Search -- Module: [${module}] Response: ${response_data.data.length} - Total: ${results.length}`);
           if(response_data.info.more_records)
             return this._search(module, criteria, page + 1, per_page, results, cb);
           else
@@ -114,11 +114,13 @@ module.exports = class Zoho {
           else
             console.log(`Updated -- Module: [${module}] ID: [${res.details.id}]`);
           //
-          if(data.length)
-            return this._update(module, data, cb);
-          else
-            return cb();
         });
+
+        if(data.length)
+          return this._update(module, data, cb);
+        else
+          return cb();
+
       });
     } catch (e) {
       //
@@ -161,29 +163,38 @@ module.exports = class Zoho {
       ZCRMRestClient.API.MODULES.post({ module: module, body: { data: tmpData } })
       .then((response) =>
       {
-        const response_data = JSON.parse(response.body).data;
-        response_data.map(res =>
-        {
-          if(res.status != "success")
+        try {
+
+          const response_data = JSON.parse(response.body).data;
+          response_data.map(res =>
           {
-            console.log(`Insert Error:`);
-            console.table(data);
-            console.table(res);
-            console.log(`----------------`);
-          }
-          else
-            console.log(`Insert -- Module: [${module}] ID: [${res.details.id}]`);
-          //
+            if(res.status != "success")
+            {
+              console.log(JSON.parse(response.body));
+              console.log(`Insert Error:`);
+              console.table(data);
+              console.table(res);
+              console.log(`----------------`);
+            }
+            else
+              console.log(`Insert -- Module: [${module}] ID: [${res.details.id}]`);
+          });
+
           if(data.length)
             return this._insert(module, data, cb);
           else
             return cb();
-        });
+
+        } catch (e) {
+          if(data.length)
+            return this._insert(module, data, cb);
+          else
+            return cb();
+        }
       });
     } catch (e) {
-      //
       if(data.length)
-        return this._update(module, data, cb);
+        return this._insert(module, data, cb);
       else
         return cb();
     }

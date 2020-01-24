@@ -16,18 +16,14 @@ let myData = [
 Zoho.Search("ImportacaoTeste", "(Id1:equals:$_id)", myData)
 .then(search_results => {
 
-  ReplaceKey.replace(search_results,  { "Id1":"Id1", "Name":"Name" })
-  .then(parsed => {
+  const parsed = ReplaceKey.exchange(search_results, { "Id1":"Id1", "Name":"Name" }, ["new"]);
+  const group_results = GroupBy.group(parsed, "Id1");
 
-    const group_results = GroupBy.group(parsed, "Id1");
-
-    // Group the two arrays together
-    myData.map(row => {
-      row.Product_Details = (group_results.hasOwnProperty(row.id) ? group_results[row.id] : []);
-    });
-
-    console.log(myData);
-
+  // Group the two arrays together
+  myData.map(row => {
+    row.Product_Details = (group_results.hasOwnProperty(row.id) ? group_results[row.id] : []);
   });
+
+  console.log(myData);
 
 });
