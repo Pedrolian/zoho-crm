@@ -12,7 +12,7 @@ const _ = require('lodash');
 let myData = [
   { "record_id": "00T1Q00003vNfrqUAC", "description": "ABC", "Name": "FooBar" },
   { "record_id": "00T1Q00003vO47JUAS", "description": "DEF", "Name": "FooBar" },
-  { "record_id": "fakeid", "description": "ZZZ", "Name": "FooBar" }
+  { "record_id": "fakeid", "description": "ZZZ" }
 ];
 
 Zoho.Search("ImportacaoTeste", "(Id1:equals:$_record_id)", myData)
