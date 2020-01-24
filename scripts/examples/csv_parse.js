@@ -11,13 +11,13 @@ csv2.ParseFile()
   const test1 = ReplaceKey.exchange(csv_parsed,  { "id": "ID" });
   console.table(test1);
 
-  const test2 = ReplaceKey.exchange(csv_parsed,  { "id": "ID" }, "-new")
+  const test2 = ReplaceKey.exchange(csv_parsed,  { "id": "ID" }, "new")
   console.table(test2);
 
   const test3 = ReplaceKey.exchange(csv_parsed,  { "id": "ID", "foo": "bar" })
   console.table(test3);
 
-  const test4 = ReplaceKey.exchange(csv_parsed,  { "id": "ID", "foo": "bar" }, ["-check"])
+  const test4 = ReplaceKey.exchange(csv_parsed,  { "id": "ID", "foo": "bar" }, ["check"])
   console.table(test4);
 
 });
