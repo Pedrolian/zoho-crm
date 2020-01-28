@@ -1,29 +1,44 @@
 const winston = require('winston');
+const path = require('path');
 
 const logger = winston.createLogger({
   level: 'info',
-  format: winston.format.json(),
-  defaultMeta: { service: 'user-service' },
   transports: [
-    //
-    // - Write all logs with level `error` and below to `error.log`
-    // - Write all logs with level `info` and below to `combined.log`
-    //
-    new winston.transports.File({ filename: '../../log/error.log', level: 'error' }),
-    new winston.transports.File({ filename: '../../log/combined.log' })
+    new winston.transports.File({
+      filename: '../../log/error.log',
+      level: 'error',
+      format: winston.format.combine(
+        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.printf(
+          info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
+        )
+      )
+    }),
+    new winston.transports.File({
+      filename: '../../log/combined.log',
+      level: 'info',
+      format: winston.format.combine(
+        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.printf(
+          info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
+        )
+      )
+    }),
+    new winston.transports.Console({
+      level: process.env.NODE_ENV === 'production' ? 'info' : 'silly',
+      format: winston.format.combine(
+        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.colorize(),
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.printf(
+          info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
+        )
+      )
+    })
   ]
 });
-
-//
-// If we're not in production then log to the `console` with the format:
-// `${info.level}: ${info.message} JSON.stringify({ ...rest }) `
-//
-//process.env.NODE_ENV = 'production';
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
 
 logger.error('error log test');
 logger.warn('warn log test');
