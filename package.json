@@ -12,6 +12,7 @@
     "csv-parser": "^2.3.2",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.15",
+    "winston": "^3.2.1",
     "zcrmsdk": "0.0.16"
   }
 }
