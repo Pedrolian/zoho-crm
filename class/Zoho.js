@@ -61,10 +61,20 @@ module.exports = class Zoho {
             return cb(results);
         }
         catch (e) {
-          Logger.error(`------Search Error:------`);
-          Logger.error(JSON.stringify(criteria));
-          Logger.error(JSON.stringify(response.body));
-          Logger.error(`------Search Error------`);
+          if(response.indexOf('"message":"no data"') < 0)
+          {
+            Logger.error(`------Search Error:------`);
+            Logger.error(JSON.stringify(criteria));
+            Logger.error(JSON.stringify(response));
+            Logger.error(`------Search Error------`);
+          }
+          else
+          {
+            Logger.warn(`------Search Warn:------`);
+            Logger.warn(JSON.stringify(criteria));
+            Logger.warn(JSON.stringify(response));
+            Logger.warn(`------Search Warn------`);
+          }
           return cb([]);
         }
       });
