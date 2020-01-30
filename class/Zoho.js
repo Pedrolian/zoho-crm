@@ -206,7 +206,7 @@ module.exports = class Zoho {
             if(res.status != "success")
             {
               Logger.warn(`------Insert Warn:------`);
-              Logger.warn(tmpData[res_counter]);
+              Logger.warn(JSON.stringify(tmpData[res_counter]));
               Logger.warn(res);
               Logger.warn(`------Insert Warn------`);
             }
