@@ -1,11 +1,11 @@
-require('dotenv').config({path: '../../.env'});
+require('dotenv').config({path: '../../../../.env'});
 
 // Zoho examples
-const ZohoClass = require('../../class/Zoho');
+const ZohoClass = require('../../../../class/Old_Zoho');
 const Zoho = new ZohoClass();
 
-const ReplaceKey = require('../../utility/ReplaceKey.js');
-const GroupBy = require('../../utility/GroupBy.js');
+const ReplaceKey = require('../../../../utility/ReplaceKey.js');
+const GroupBy = require('../../../../utility/GroupBy.js');
 
 const CsvClass = require('../../class/CSV');
 

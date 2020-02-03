@@ -1,4 +1,4 @@
-logger = require('../../utility/WinstonLogger.js');
+logger = require('../../../utility/WinstonLogger.js');
 
 logger.error('error log test');
 logger.warn('warn log test');

@@ -1,7 +1,7 @@
-require('dotenv').config({path: '../../.env'});
+require('dotenv').config({path: '../../../.env'});
 
-const Logger = require('../../utility/WinstonLogger.js');
-const ReplaceKey = require('../../utility/ReplaceKey.js');
+const Logger = require('../../../utility/WinstonLogger.js');
+const ReplaceKey = require('../../../utility/ReplaceKey.js');
 const _ = require('lodash');
 
 const ZohoClass = require('../../../class/Zoho');

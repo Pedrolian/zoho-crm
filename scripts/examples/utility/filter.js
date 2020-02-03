@@ -1,8 +1,8 @@
 // CSV Lodash examples
 const _ = require('lodash');
-const CsvClass = require('../../class/CSV');
+const CsvClass = require('../../../class/CSV');
 
-const csv = new CsvClass('../../data/Example_Users.csv', { "separator": "," });
+const csv = new CsvClass('../../../data/Example_Users.csv', { "separator": "," });
 csv.ParseFile()
 .then(csv_parsed => {
 

@@ -1,6 +1,6 @@
-require('dotenv').config({path: '../../.env'});
+require('dotenv').config({path: '../../../.env'});
 
-const Logger = require('../../utility/WinstonLogger.js');
+const Logger = require('../../../utility/WinstonLogger.js');
 
 const ZohoClass = require('../../../class/Zoho');
 const Zoho = new ZohoClass();
