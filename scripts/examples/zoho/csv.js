@@ -1,3 +1,5 @@
+require('dotenv').config({path: '../../../.env'});
+
 // Mass Insert
 const ReplaceKey = require('../../../utility/ReplaceKey.js');
 
