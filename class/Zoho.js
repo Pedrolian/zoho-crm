@@ -1,9 +1,9 @@
 const ZCRMRestClient = require('zcrmsdk');
 
-const DataReplace = require('../../utility/DataReplaceString.js');
-const Logger = require('../../utility/WinstonLogger.js');
-const GroupBy = require('../../utility/GroupBy.js');
-const ToOptions = require('../../utility/ToOptions.js');
+const DataReplace = require('../utility/DataReplaceString.js');
+const Logger = require('../utility/WinstonLogger.js');
+const GroupBy = require('../utility/GroupBy.js');
+const ToOptions = require('../utility/ToOptions.js');
 
 const _ = require('lodash');
 
