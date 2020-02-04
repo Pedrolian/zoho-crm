@@ -806,6 +806,61 @@ class ZohoClass
     });
   }
 
+  GetRecords(module, options, per_page, page, search_results)
+  {
+
+    per_page = per_page || 200;
+    page = page || 1;
+    options = ToOptions.parse(options);
+    search_results = search_results || [];
+
+    return new Promise((resolve, reject) => {
+
+      this.Log('verbose',`GetRecords -- Module: [${module}]${options.hasOwnProperty("modified_since") ? ` -- Modified-Since: [${options.modified_since}]` : ''}`);
+      if(this.PoolSize <= 0)
+      {
+        this.Log('error', [`------GetRecords Pool Error:------`,`Status code: 429`,`Too many requests fired in concurrent than the allowed limit.`,`------GetRecords Pool Error------`]);
+        return reject({ statusCode: 429, code: 'TOO_MANY_REQUESTS', message: 'Many requests fired in concurrent than the allowed limit.', details: null });
+      }
+
+      this.PoolSize--;
+
+      let headers = {};
+      if(options.hasOwnProperty("modified_since"))
+        headers['If-Modified-Since'] = options.modified_since;
+
+      ZCRMRestClient.API.MODULES.get({ module: module, headers: headers, params: { page: page, per_page: per_page} })
+      .then((response) =>
+      {
+        this.PoolSize++;
+        if(response.statusCode === 200) // Found something
+        {
+          const response_data = JSON.parse(response.body);
+          this.Log('debug',`GetRecords -- Module: [${module}] Page: ${page} - Response: ${response_data.data.length} - Total: ${search_results.length+response_data.data.length}`);
+          search_results = search_results.concat(response_data.data);
+          if(options.hasOwnProperty("modified_since") && response_data.info.more_records || options.hasOwnProperty("all") && response_data.info.more_records) // Only return more than 200 if options are passed
+            return resolve(this.GetRecords(module, options, per_page, page+1, search_results));
+          else
+            return resolve(search_results);
+        }
+        else if(response.statusCode === 404 || response.statusCode === 304) // No results
+        {
+          if(!search_results.length)
+            this.Log('warn', [`------GetRecords Warn:------`,`No data`,`------GetRecords Warn------`]);
+          return resolve(search_results);
+        }
+        else // Error
+        {
+          const response_data = JSON.parse(response.body);
+          this.Log('error', [`------GetRecords Error:------`,`Status code: ${response.statusCode}`,response_data,`------GetRecords Error------`]);
+          return reject({ statusCode: response.statusCode, code: response_data.code, message: response_data.message, details: response_data.details });
+        }
+
+      });
+
+    });
+  }
+
 }
 
 module.exports = ZohoClass;
