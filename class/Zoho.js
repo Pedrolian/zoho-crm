@@ -45,7 +45,7 @@ class ZohoClass
         data_chunks[data_chunks.length-1] = _.concat(data_chunks[data_chunks.length-1], data_chunk_last);
       }
 
-      this.Log('debug',`Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
+      this.Log('debug',`Insert Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
 
       let promiseArrays = [];
       let response_data = { success: [], error: [] };
@@ -190,7 +190,7 @@ class ZohoClass
         data_chunks[data_chunks.length-1] = _.concat(data_chunks[data_chunks.length-1], data_chunk_last);
       }
 
-      this.Log('debug',`Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
+      this.Log('debug',`Update Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
 
       let promiseArrays = [];
       for(let index = 0; index < data_chunks.length; index++)
@@ -343,7 +343,7 @@ class ZohoClass
           data_chunks[data_chunks.length-1] = _.concat(data_chunks[data_chunks.length-1], data_chunk_last);
         }
 
-        this.Log('debug',`Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
+        this.Log('debug',`Search Chunk size: ${data_chunks.length} (Avg: ${Math.round(data.length / poolSize)}) for ${poolSize} pool size.`);
 
         let promiseArrays = [];
         let promiseResults = [];
@@ -664,6 +664,146 @@ class ZohoClass
 
     })
 
+  }
+
+  /***
+   * * Get speficic Id or Ids
+   * @param ids (String||Array)
+   */
+  GetId(module, ids, options, search_results)
+  {
+    options = ToOptions.parse(options);
+    search_results = search_results || [];
+
+    return new Promise((resolve, reject) =>
+    {
+      try
+      {
+        ids = Array.isArray(ids) ? ids : [ids];
+
+        // Split incoming data array evenly between the pool size.
+        const poolSize = this.PoolSize < ids.length ? this.PoolSize : ids.length;
+        let data_chunks = _.chunk(ids, Math.round(ids.length / poolSize));
+        if(data_chunks.length > poolSize)
+        {
+          const data_chunk_last = data_chunks.pop();
+          data_chunks[data_chunks.length-1] = _.concat(data_chunks[data_chunks.length-1], data_chunk_last);
+        }
+
+        this.Log('debug',`GetId Chunk size: ${data_chunks.length} (Avg: ${Math.round(ids.length / poolSize)}) for ${poolSize} pool size.`);
+
+        let promiseArrays = [];
+        let promiseResults = [];
+        for(let index = 0; index < data_chunks.length; index++)
+        {
+          promiseArrays.push(new Promise((resolve, reject) =>
+          {
+            this._GetIdPoolChunk(module, data_chunks[index], search_results)
+            .then(search_results =>
+            {
+              promiseResults = _.concat(promiseResults, search_results);
+              return resolve();
+            })
+            .catch(e =>
+            {
+              if(options.hasOwnProperty("surpress") && options.surpress === false || data_chunks.length === 1)
+                return reject(e);
+              return resolve();
+            });
+          }));
+        }
+
+        Promise.all(promiseArrays)
+        .then(values =>
+        {
+          const grouppedResults = GroupBy.group(promiseResults, "id");
+
+          let reducedResults = {};
+          Object.keys(grouppedResults).map(key =>{
+            reducedResults[key]= grouppedResults[key][0];
+          });
+
+          return resolve(reducedResults);
+        })
+        .catch(e => {
+          return reject(e);
+        });
+
+      }
+      catch (e) {
+        return reject(e);
+      }
+
+    });
+  }
+
+  _GetIdPoolChunk(module, data, response_results, data_index)
+  {
+    response_results = response_results || [];
+    data_index = data_index || 0;
+
+    const data_chunks = _.chunk(data, 1);
+
+    return new Promise((resolve, reject) =>
+    {
+      this._GetId(module, data_chunks[0])
+      .then(response_data => {
+
+        if(response_data != null)
+          response_results = _.concat(response_results, response_data);
+
+        if(data_chunks.length > data_index+1)
+          return resolve(this._GetIdPoolChunk(module, data, response_results, data_index+1));
+        else
+        {
+          return resolve(response_results);
+        }
+
+      })
+      .catch(e => {
+        return reject(e);
+      });
+    });
+  }
+
+  _GetId(module, data)
+  {
+    return new Promise((resolve, reject) =>
+    {
+
+      this.Log('verbose',`GetId -- Module: [${module}]`);
+      if(this.PoolSize <= 0)
+      {
+        this.Log('error', [`------GetId Pool Error:------`,`Status code: 429`,`Too many requests fired in concurrent than the allowed limit.`,`------GetId Pool Error------`]);
+        return reject({ statusCode: 429, code: 'TOO_MANY_REQUESTS', message: 'Many requests fired in concurrent than the allowed limit.', details: null });
+      }
+
+      this.PoolSize--;
+      ZCRMRestClient.API.MODULES.get({ module: module, id: data })
+      .then((response) =>
+      {
+        this.PoolSize++;
+        if(response.statusCode === 200) // Found something
+        {
+          const response_data = JSON.parse(response.body).data;
+          this.Log('debug',`GetId -- Module: [${module}] Loaded: [${response_data[0].id}] `);
+          return resolve(response_data);
+        }
+        else if(response.statusCode === 404) // No results
+        {
+          this.Log('warn', [`------GetId Warn:------`,data,response.body,`------GetId Warn------`]);
+          return resolve(null);
+        }
+        else // Error
+        {
+          const response_data = JSON.parse(response.body);
+          this.Log('error', [`------GetId Error:------`,`Status code: ${response.statusCode}`,data,response_data,`------GetId Error------`]);
+          return reject({ statusCode: response.statusCode, code: response_data.code, message: response_data.message, details: response_data.details });
+        }
+
+      });
+
+    });
   }
 
 }
