@@ -3,6 +3,7 @@ require('dotenv').config({path: '../../../.env'});
 // Mass Insert
 const ReplaceKey = require('../../../utility/ReplaceKey.js');
 const Logger = require('../../../utility/WinstonLogger.js');
+Logger.setPath('../../../log');
 
 const ZohoClass = require('../../../class/Zoho');
 const Zoho = new ZohoClass();

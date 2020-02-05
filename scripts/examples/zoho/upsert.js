@@ -1,6 +1,8 @@
 require('dotenv').config({path: '../../../.env'});
 
 const Logger = require('../../../utility/WinstonLogger.js');
+Logger.setPath('../../../log');
+
 const ReplaceKey = require('../../../utility/ReplaceKey.js');
 const _ = require('lodash');
 

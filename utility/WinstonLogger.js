@@ -1,11 +1,13 @@
 const winston = require('winston');
 const path = require('path');
 
-const logDirectory = path.join(__dirname, '../log')
-
 const logger = winston.createLogger({
-  level: 'info',
-  transports: [
+  transports: []
+});
+
+setPath = (logDirectory) => {
+
+  logger.add(
     new winston.transports.File({
       filename: `${logDirectory}/error.log`,
       level: 'error',
@@ -16,7 +18,10 @@ const logger = winston.createLogger({
           info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
         )
       )
-    }),
+    })
+  );
+
+  logger.add(
     new winston.transports.File({
       filename: `${logDirectory}/combined.log`,
       level: 'info',
@@ -27,7 +32,10 @@ const logger = winston.createLogger({
           info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
         )
       )
-    }),
+    })
+  );
+
+  logger.add(
     new winston.transports.Console({
       level: process.env.NODE_ENV === 'production' ? 'info' : 'silly',
       format: winston.format.combine(
@@ -39,7 +47,9 @@ const logger = winston.createLogger({
         )
       )
     })
-  ]
-});
+  );
+
+}
 
 module.exports = logger;
+module.exports.setPath = setPath;

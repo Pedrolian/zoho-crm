@@ -1,4 +1,5 @@
 logger = require('../../../utility/WinstonLogger.js');
+logger.setPath('../../../log');
 
 logger.error('error log test');
 logger.warn('warn log test');
