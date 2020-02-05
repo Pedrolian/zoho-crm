@@ -1,18 +1,27 @@
 {
   "name": "import_zoho",
-  "version": "0.0.6",
+  "version": "1.0.0",
   "description": "",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "main": "scripts/index.js",
   "dependencies": {
     "csv-parser": "^2.3.2",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.15",
     "winston": "^3.2.1",
     "zcrmsdk": "github:Pedrolian/ZCRMSDK"
-  }
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "scripts/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pedrolian/ImportZoho.git"
+  },
+  "author": "Pedrolian",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Pedrolian/ImportZoho/issues"
+  },
+  "homepage": "https://github.com/Pedrolian/ImportZoho#readme"
 }
