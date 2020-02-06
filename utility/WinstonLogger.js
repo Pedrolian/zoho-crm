@@ -1,12 +1,15 @@
 const winston = require('winston');
 const path = require('path');
 
+const calledDirectoryFull = process.mainModule.filename.split("\\");
+const calledDirectory = calledDirectoryFull[calledDirectoryFull.length-2]+"/"+calledDirectoryFull[calledDirectoryFull.length-1];
+
 const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({
-      level: process.env.NODE_ENV === 'production' ? 'info' : 'silly',
+      level: process.env.WINSTON_CONSOLE_LEVEL || 'silly',
       format: winston.format.combine(
-        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.label({ label: calledDirectory }),
         winston.format.colorize(),
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         winston.format.printf(
@@ -22,27 +25,23 @@ setPath = (logDirectory) => {
   logger.add(
     new winston.transports.File({
       filename: `${logDirectory}/error.log`,
-      level: 'error',
+      level: process.env.WINSTON_LOG_ERROR_LEVEL || 'error',
       format: winston.format.combine(
-        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.label({ "label": calledDirectory }),
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        winston.format.printf(
-          info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
-        )
+        winston.format.json()
       )
     })
   );
 
   logger.add(
     new winston.transports.File({
-      filename: `${logDirectory}/combined.log`,
-      level: 'info',
+      filename: `${logDirectory}/all.log`,
+      level: process.env.WINSTON_LOG_ALL_LEVEL || 'info',
       format: winston.format.combine(
-        winston.format.label({ label: path.basename(process.mainModule.filename) }),
+        winston.format.label({ "label": calledDirectory }),
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        winston.format.printf(
-          info => `(${info.timestamp})[${info.label}]-[${info.level}]: ${info.message}`
-        )
+        winston.format.json()
       )
     })
   );
