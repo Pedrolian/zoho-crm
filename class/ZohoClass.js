@@ -384,7 +384,7 @@ module.exports = class ZohoClass {
           successData = [];
 
         this.StackPush("MODULES", "upsert", { module: moduleName, body: { data: row, duplicate_check_fields: duplicate_check } }, (response) => {
-          console.log(response.statusCode);
+          counter++;
           if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
