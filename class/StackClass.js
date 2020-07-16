@@ -7,9 +7,9 @@ module.exports = class Stack {
   constructor(poolSize) {
     //console.log(`Constructor for Stack called...`);
     this.PoolSize = !isNaN(Number(poolSize)) ? poolSize : 5;
-    this.timeOutDelay = 100;
+    this.timeOutDelay = 50;
     this._Stack = [];
-    this._StackMaxAttempts = 2;
+    this._StackMaxAttempts = 100;
 
     this._Connections = [];
     for (let i = 0; i < this.PoolSize; i++) {

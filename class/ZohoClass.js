@@ -22,6 +22,13 @@ module.exports = class ZohoClass {
     this.StackClass.StackPush(apiMethod, moduleName, data, cb);
   }
 
+  Log(level, message) {
+    message = Array.isArray(message) ? message : [message];
+    message.map((msg) => {
+      Logger.log(level, typeof msg === "object" && msg !== null ? JSON.stringify(msg) : msg);
+    });
+  }
+
   getId(moduleName, data, cb) {
     data = Array.isArray(data) ? data : [data];
 
@@ -165,6 +172,7 @@ module.exports = class ZohoClass {
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Updated -- Module: [${moduleName}] ID: [${row[res_counter].id}]`);
+                this.Log("warn", { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -212,6 +220,7 @@ module.exports = class ZohoClass {
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Insert -- Module: [${moduleName}]`);
+                this.Log("warn", { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -394,6 +403,7 @@ module.exports = class ZohoClass {
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Upsert -- Module: [${moduleName}]`);
+                this.Log("warn", { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
