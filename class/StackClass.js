@@ -7,9 +7,9 @@ module.exports = class Stack {
   constructor(poolSize) {
     //console.log(`Constructor for Stack called...`);
     this.PoolSize = !isNaN(Number(poolSize)) ? poolSize : 5;
-    this.timeOutDelay = 50;
+    this.timeOutDelay = 200;
     this._Stack = [];
-    this._StackMaxAttempts = 100;
+    this._StackMaxAttempts = 5;
 
     this._Connections = [];
     for (let i = 0; i < this.PoolSize; i++) {
@@ -22,6 +22,20 @@ module.exports = class Stack {
         processing: false,
       });
     }
+  }
+
+  ResetConnections() {
+    const checkOpenConnections = this._Connections.filter((conn) => {
+      return !conn.processing;
+    });
+    if (!checkOpenConnections.length) return;
+    checkOpenConnections.map((conn) => {
+      console.log(this._Connections[conn.id].retries);
+      this._Connections[conn.id].retries = 0;
+      this._Connections[conn.id].timer = setTimeout(() => {
+        this.Stack(conn.id);
+      }, this.timeOutDelay);
+    });
   }
 
   StackPush(api, method, data, cb) {
@@ -37,12 +51,16 @@ module.exports = class Stack {
       const checkOpenConnections = this._Connections.filter((conn) => {
         return conn.processing;
       });
-      if (!checkOpenConnections.length) return;
-      else {
+      if (!checkOpenConnections.length) {
+        Logger.silly(`#${connectionId} - Verified stack is empty.`);
+        return;
+      } else {
         Logger.silly(`#${connectionId} Complete stack reset.`);
         tmpConnection.retries = 0;
       }
     }
+
+    Logger.silly(`#${connectionId} - Checking stack, attempt ${tmpConnection.retries} / ${this._StackMaxAttempts}`);
 
     if (this._Stack.length == 0) {
       tmpConnection.retries++;
