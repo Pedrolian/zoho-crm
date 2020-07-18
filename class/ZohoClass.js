@@ -19,7 +19,7 @@ module.exports = class ZohoClass {
   }
 
   StackPush(apiMethod, moduleName, data, cb) {
-    this.StackClass.StackPush(apiMethod, moduleName, data, cb);
+    this.StackClass.push(apiMethod, moduleName, data, cb);
   }
 
   Log(level, message) {
@@ -427,23 +427,20 @@ module.exports = class ZohoClass {
         });
       });
     });
-
-    /*
-    ZCRMRestClient.API.MODULES.upsert({ ...data, module: moduleName }).then((response) => {
-      console.log(response.statusCode);
-      console.log(JSON.parse(response.body));
-      //console.log( JSON.parse(response.body).data.length );
-      console.log(JSON.parse(response.body).data[0]);
-    });
-    */
   }
 
   deleteRecords(moduleName, data, cb) {
     //MODULES.delete
   }
 
-  getProfiles() {
-    //SETTINGS.getProfiles
+  getProfiles(cb) {
+    return new Promise((resolve, reject) => {
+      this.StackPush("SETTINGS", "getProfiles", "", (response) => {
+        const response_data = JSON.parse(response.body);
+        cb(false, response_data.profiles);
+        return resolve({ error: false, data: response_data.profiles });
+      });
+    });
   }
 
   getRoles() {

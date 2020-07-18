@@ -4,87 +4,77 @@ Logger.setPath("../log");
 const ZCRMRestClient = require("zcrmsdk");
 
 module.exports = class Stack {
-  constructor(poolSize) {
-    //console.log(`Constructor for Stack called...`);
+  constructor(poolSize, maxAttempts, delayAttempt) {
     this.PoolSize = !isNaN(Number(poolSize)) ? poolSize : 5;
-    this.timeOutDelay = 200;
-    this._Stack = [];
-    this._StackMaxAttempts = 5;
 
+    this._maxAttempts = !isNaN(Number(maxAttempts)) ? maxAttempts : 5;
+    this._currentAttmept = 0;
+    this._delayAttempt = !isNaN(Number(delayAttempt)) ? delayAttempt : 100;
+
+    this._stack = [];
     this._Connections = [];
     for (let i = 0; i < this.PoolSize; i++) {
       this._Connections.push({
         id: i,
-        timer: setTimeout(() => {
-          this.Stack(i);
-        }, this.timeOutDelay),
         retries: 0,
         processing: false,
       });
     }
+
+    this._process();
   }
 
-  ResetConnections() {
-    const checkOpenConnections = this._Connections.filter((conn) => {
-      return !conn.processing;
-    });
-    if (!checkOpenConnections.length) return;
-    checkOpenConnections.map((conn) => {
-      console.log(this._Connections[conn.id].retries);
-      this._Connections[conn.id].retries = 0;
-      this._Connections[conn.id].timer = setTimeout(() => {
-        this.Stack(conn.id);
-      }, this.timeOutDelay);
-    });
+  push(api, method, data, cb) {
+    this._currentAttmept = 0;
+    this._stack.push({ api, method, data, cb });
+    this._process();
   }
 
-  StackPush(api, method, data, cb) {
-    this._Stack.push({ api, method, data, cb });
-  }
+  _process() {
+    // Check if any open connection can grab first from stack
+    const availableConns = this._Connections.filter((conn) => !conn.processing);
+    if (availableConns.length == 0) return;
 
-  Stack(connectionId) {
-    const tmpConnection = this._Connections[connectionId];
-    clearTimeout(this._Connections[connectionId].timer);
-    this._Connections[connectionId].timer = null;
-
-    if (tmpConnection.retries >= this._StackMaxAttempts) {
-      const checkOpenConnections = this._Connections.filter((conn) => {
-        return conn.processing;
-      });
-      if (!checkOpenConnections.length) {
-        Logger.silly(`#${connectionId} - Verified stack is empty.`);
-        return;
-      } else {
-        Logger.silly(`#${connectionId} Complete stack reset.`);
-        tmpConnection.retries = 0;
+    if (availableConns.length == this._Connections.length && this._stack.length === 0) {
+      // Check if stack has been empty for awhile
+      // Come back in 1 second, and see if still nothing was readded, after n attempts, shut down program.
+      this._currentAttmept++;
+      Logger.silly(`All connections available, attempts: ${this._currentAttmept} / ${this._maxAttempts}`);
+      if (this._currentAttmept < this._maxAttempts) {
+        setTimeout(() => {
+          this._process();
+        }, this._delayAttempt);
       }
-    }
-
-    Logger.silly(`#${connectionId} - Checking stack, attempt ${tmpConnection.retries} / ${this._StackMaxAttempts}`);
-
-    if (this._Stack.length == 0) {
-      tmpConnection.retries++;
-      setTimeout(() => {
-        this.Stack(connectionId);
-      }, this.timeOutDelay);
       return;
-    } else {
-      tmpConnection.processing = true;
-
-      const tmpStack = this._Stack.shift();
-
-      Logger.silly(`#${connectionId} - Running method: ${tmpStack.method} on module: ${tmpStack.data.module}`);
-
-      ZCRMRestClient.API[tmpStack.api][tmpStack.method](tmpStack.data).then((response) => {
-        Logger.silly(`#${connectionId} Stack reset.`);
-        tmpConnection.processing = false;
-        tmpConnection.retries = 0;
-        tmpConnection.timer = setTimeout(() => {
-          this.Stack(tmpConnection.id);
-        }, this.timeOutDelay);
-
-        return tmpStack.cb(response);
-      });
     }
+
+    if (this._stack.length === 0) return;
+
+    //  process data
+    const processData = this._stack.shift();
+
+    // first available connection
+    const connection = availableConns[0];
+    this._Connections[connection.id].processing = true;
+
+    Logger.debug(`#${connection.id} - Running method: ${processData.method} on module: ${processData.data.module}`);
+
+    ZCRMRestClient.API[processData.api][processData.method](processData.data).then((response) => {
+      //
+      Logger.debug(`#${connection.id} - Finished..`);
+      this._currentAttmept = 0;
+      this._Connections[connection.id].processing = false;
+      this._process();
+      //
+      return processData.cb(response);
+    });
+  }
+
+  getConnections() {
+    console.table(this._Connections);
+  }
+
+  getStack() {
+    console.table(this._stack);
   }
 };
