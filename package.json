@@ -9,7 +9,7 @@
     "dotenv": "^8.2.0",
     "lodash": "^4.17.19",
     "winston": "^3.3.3",
-    "zcrmsdk": "git+https://gitlab.com/wiki-consultoria/desenvolvimento/zcrmsdk.git"
+    "zcrmsdk": "git+https://github.com/Pedrolian/ZCRMSDK.git"
   },
   "devDependencies": {},
   "scripts": {
