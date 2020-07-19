@@ -16,8 +16,7 @@ module.exports = class Stack {
     for (let i = 0; i < this.PoolSize; i++) {
       this._Connections.push({
         id: i,
-        retries: 0,
-        processing: false,
+        isProcessing: false,
       });
     }
 
@@ -32,12 +31,12 @@ module.exports = class Stack {
 
   _process() {
     // Check if any open connection can grab first from stack
-    const availableConns = this._Connections.filter((conn) => !conn.processing);
+    const availableConns = this._Connections.filter((conn) => !conn.isProcessing);
     if (availableConns.length == 0) return;
 
     if (availableConns.length == this._Connections.length && this._stack.length === 0) {
       // Check if stack has been empty for awhile
-      // Come back in 1 second, and see if still nothing was readded, after n attempts, shut down program.
+      // Come back in n second, and see if still nothing was readded, after n attempts, don't check anymore until new push was added.
       this._currentAttmept++;
       Logger.silly(`All connections available, attempts: ${this._currentAttmept} / ${this._maxAttempts}`);
       if (this._currentAttmept < this._maxAttempts) {
@@ -55,15 +54,15 @@ module.exports = class Stack {
 
     // first available connection
     const connection = availableConns[0];
-    this._Connections[connection.id].processing = true;
+    this._Connections[connection.id].isProcessing = true;
 
-    Logger.debug(`#${connection.id} - Running method: ${processData.method} on module: ${processData.data.module}`);
+    Logger.debug(`#${connection.id} - Running method: ${processData.method} on module: ${processData.data.module} - ${JSON.stringify(processData.data)}`);
 
     ZCRMRestClient.API[processData.api][processData.method](processData.data).then((response) => {
       //
-      Logger.debug(`#${connection.id} - Finished..`);
+      Logger.debug(`#${connection.id} - Finished.`);
       this._currentAttmept = 0;
-      this._Connections[connection.id].processing = false;
+      this._Connections[connection.id].isProcessing = false;
       this._process();
       //
       return processData.cb(response);
@@ -71,10 +70,10 @@ module.exports = class Stack {
   }
 
   getConnections() {
-    console.table(this._Connections);
+    return this._Connections;
   }
 
   getStack() {
-    console.table(this._stack);
+    return this._stack;
   }
 };

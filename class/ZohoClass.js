@@ -249,52 +249,89 @@ module.exports = class ZohoClass {
 
   searchRecords(moduleName, criteria, cb, data, options) {
     data = data || [];
-    options = ToOptions.parse(options);
 
+    options = ToOptions.parse(options);
     options.params = options.hasOwnProperty("params") ? options.params : { page: 1, per_page: 200 };
+    options.chunk = options.hasOwnProperty("chunk") ? options.chunk : 1;
+    options.headers = options.hasOwnProperty("headers") ? options.headers : {};
+
+    let searchData = [];
+
+    for (let i = 0; i < options.chunk; i++) {
+      searchData.push({ ...options, ...{ params: { ...options.params, page: options.params.page + i } } });
+    }
 
     if (!criteria.length) return cb({ statusCode: 400, code: "CRITERIA_LIMIT_EXCEEDED", message: "No criteria provided.", details: null });
 
-    const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
-    if (criteria_matches.length > 10)
-      return cb({
-        statusCode: 400,
-        code: "CRITERIA_LIMIT_EXCEEDED",
-        message: "Cannot send more than 10 criterias together.",
-        details: null,
-      });
-
     return new Promise((resolve, reject) => {
-      if (data.length) {
-        const search_criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
-        //const chunk_size = data.length * search_criteria_matches.length < 10 ? 10 : (10 / search_criteria_matches.length) >> 0;
-        const chunk_size =
-          data.length * search_criteria_matches.length < 10
-            ? this.StackClass.PoolSize < 10 && this.StackClass.PoolSize != 1
-              ? this.StackClass.PoolSize
-              : 10
-            : (10 / search_criteria_matches.length) >> 0;
-        const data_chunks = _.chunk(data, chunk_size);
+      // Check if criteria is below max allowed
+      const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
+      if (criteria_matches.length > 10) {
+        cb({
+          statusCode: 400,
+          code: "CRITERIA_LIMIT_EXCEEDED",
+          message: "Cannot send more than 10 criterias together.",
+          details: null,
+        });
+        return reject();
+      }
 
-        let counter = 0,
-          maxCounter = data_chunks.length;
+      searchData.map((row) => {
+        if (data.length) {
+          const search_criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
+          //const chunk_size = data.length * search_criteria_matches.length < 10 ? 10 : (10 / search_criteria_matches.length) >> 0;
+          const chunk_size =
+            data.length * search_criteria_matches.length < 10
+              ? this.StackClass.PoolSize < 10 && this.StackClass.PoolSize != 1
+                ? this.StackClass.PoolSize
+                : 10
+              : (10 / search_criteria_matches.length) >> 0;
+          const data_chunks = _.chunk(data, chunk_size);
 
-        data_chunks.map((chunk) => {
-          let search_array = [];
-          chunk.map((row) => {
-            search_array.push(DataReplace.replace(row, criteria));
+          let counter = 0,
+            maxCounter = data_chunks.length;
+
+          data_chunks.map((chunk) => {
+            let search_array = [];
+            chunk.map((row) => {
+              search_array.push(DataReplace.replace(row, criteria));
+            });
+
+            this._GetSearchChunk(
+              {
+                ...row,
+                module: moduleName,
+                params: {
+                  ...row.params,
+                  criteria: `(${search_array.join("OR")})`,
+                },
+              },
+              chunk,
+              (error, response_data, data, added_row) => {
+                cb(error, response_data, data);
+
+                if (added_row) maxCounter++;
+
+                counter++;
+
+                if (counter === maxCounter) return resolve();
+              }
+            );
           });
+        } else {
+          let counter = 0,
+            maxCounter = 1;
 
           this._GetSearchChunk(
             {
+              ...row,
               module: moduleName,
               params: {
-                criteria: `(${search_array.join("OR")})`,
-                page: options.params.page,
-                per_page: options.params.per_page,
+                ...row.params,
+                criteria: criteria,
               },
             },
-            chunk,
+            [],
             (error, response_data, data, added_row) => {
               cb(error, response_data, data);
 
@@ -305,28 +342,8 @@ module.exports = class ZohoClass {
               if (counter === maxCounter) return resolve();
             }
           );
-        });
-      } else {
-        let counter = 0,
-          maxCounter = 1;
-
-        this._GetSearchChunk(
-          {
-            module: moduleName,
-            params: { criteria: criteria, page: options.params.page, per_page: options.params.per_page },
-          },
-          [],
-          (error, response_data, data, added_row) => {
-            cb(error, response_data, data);
-
-            if (added_row) maxCounter++;
-
-            counter++;
-
-            if (counter === maxCounter) return resolve();
-          }
-        );
-      }
+        }
+      });
     });
   }
 
@@ -339,7 +356,7 @@ module.exports = class ZohoClass {
         const response_data = JSON.parse(response.body);
         Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${response_data.data.length} - Criteria: ${searchData.params.criteria}`);
         if (response_data.info.more_records) {
-          searchData.params.page++;
+          searchData.params.page = searchData.chunk + searchData.params.page;
           this._GetSearchChunk(searchData, data, cb);
           return cb(false, response_data.data, { module: searchData.module, data: data }, true);
         } else return cb(false, response_data.data, { module: searchData.module, data: data }, false);
