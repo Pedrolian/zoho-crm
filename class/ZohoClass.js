@@ -167,7 +167,7 @@ module.exports = class ZohoClass {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
               if (res.status == "success") {
-                successData.push(row[res_counter]);
+                successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Updated -- Module: [${moduleName}] ID: [${row[res_counter].id}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
@@ -215,7 +215,7 @@ module.exports = class ZohoClass {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
               if (res.status == "success") {
-                successData.push({ id: res.details.id, ...row[res_counter] });
+                successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Insert -- Module: [${moduleName}] ID: [${res.details.id}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
@@ -415,7 +415,7 @@ module.exports = class ZohoClass {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
               if (res.status == "success") {
-                successData.push({ id: res.details.id, ...row[res_counter] });
+                successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Upsert -- Module: [${moduleName}] ID: [${res.details.id}] - Type: [${res.message}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
