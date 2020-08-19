@@ -56,7 +56,8 @@ module.exports = class Stack {
     const connection = availableConns[0];
     this._Connections[connection.id].isProcessing = true;
 
-    Logger.debug(`#${connection.id} - Running method: ${processData.method} on module: ${processData.data.module} - ${JSON.stringify(processData.data)}`);
+    Logger.debug(`#${connection.id} - Running method: ${processData.method} on module: ${processData.data.module}`);
+    Logger.silly(`#${connection.id} - Processing: ${JSON.stringify(processData.data)}`);
 
     ZCRMRestClient.API[processData.api][processData.method](processData.data).then((response) => {
       //

@@ -1,6 +1,3 @@
-require("dotenv").config({ path: "../.env" });
-//console.clear();
-
 const ZCRMRestClient = require("zcrmsdk");
 
 const DataReplace = require("../utility/DataReplaceString.js");
@@ -29,7 +26,7 @@ module.exports = class ZohoClass {
     });
   }
 
-  getId(moduleName, data, cb) {
+  getId(moduleName, data, callback) {
     data = Array.isArray(data) ? data : [data];
 
     return new Promise((resolve, reject) => {
@@ -37,6 +34,9 @@ module.exports = class ZohoClass {
       //     error_array = [];
 
       let counter = 0;
+
+      let success_array = [],
+        error_array = [];
 
       data.map((tmpId) => {
         this.StackPush("MODULES", "get", { module: moduleName, id: tmpId }, (response) => {
@@ -46,37 +46,41 @@ module.exports = class ZohoClass {
             // Found something
             const response_data = JSON.parse(response.body).data;
             Logger.debug(`GetId -- Module: [${moduleName}] Id: [${response_data[0].id}] `);
-            // success_array.push({ error: false, data: response_data[0], chunk: { module: moduleName, data: tmpId } });
-            cb(false, response_data, { module: moduleName, data: tmpId });
+
+            if (callback !== undefined) callback(false, response_data, { module: moduleName, data: tmpId });
+
+            success_array.push({ error: false, response: response_data[0], data: { module: moduleName, data: tmpId } });
           } // Error
           else {
             const response_data = JSON.parse(response.body);
             Logger.error(`GetId -- Module: [${moduleName}] Id: ${tmpId}`);
-            // error_array.push({ error: { statusCode: response.statusCode, code: response_data.code, message: response_data.message, details: response_data.details }, data: [], chunk: { module: moduleName, data: tmpId } });
-            cb(
-              {
-                statusCode: response.statusCode,
-                code: response_data.code,
-                message: response_data.message,
-                details: response_data.details,
-              },
-              [],
-              { module: moduleName, data: tmpId }
-            );
+
+            if (callback !== undefined)
+              callback(
+                {
+                  statusCode: response.statusCode,
+                  code: response_data.code,
+                  message: response_data.message,
+                  details: response_data.details,
+                },
+                null,
+                { module: moduleName, data: tmpId }
+              );
+
+            error_array.push({
+              error: { statusCode: response.statusCode, code: response_data.code, message: response_data.message, details: response_data.details },
+              response: null,
+              data: { module: moduleName, data: tmpId },
+            });
           }
 
-          // if(success_array.length + error_array.length === data.length)
-          // {
-          //     return resolve({ error: error_array, success: success_array });
-          // }
-
-          if (counter == data.length) return resolve();
+          if (counter == data.length) return resolve({ error: error_array, response: success_array, data: data });
         });
       });
     });
   }
 
-  getRecords(moduleName, options, cb) {
+  getRecords(moduleName, options, callback) {
     options = ToOptions.parse(options);
     options.params = options.hasOwnProperty("params") ? options.params : { page: 1, per_page: 200 };
     options.chunk = options.hasOwnProperty("chunk") ? options.chunk : 1;
@@ -91,16 +95,19 @@ module.exports = class ZohoClass {
     let counter = 0,
       maxCounter = data.length;
 
+    let resolve_response = [];
+
     return new Promise((resolve, reject) => {
       data.map((row) => {
-        this._GetRecordChunk(moduleName, row, (error, response_data, data, added_row) => {
-          cb(error, response_data, data);
+        this._GetRecordChunk(moduleName, row, (error, response_data, chunk_data, added_row) => {
+          if (callback !== undefined) callback(error, response_data, chunk_data);
 
           if (added_row) maxCounter++;
 
           counter++;
 
-          if (counter === maxCounter) return resolve();
+          resolve_response = resolve_response.concat(response_data);
+          if (counter === maxCounter) return resolve({ error: error, response: resolve_response, data: data });
         });
       });
     });
@@ -247,7 +254,7 @@ module.exports = class ZohoClass {
     });
   }
 
-  searchRecords(moduleName, criteria, cb, data, options) {
+  searchRecords(moduleName, criteria, callback, data, options) {
     data = data || [];
 
     options = ToOptions.parse(options);
@@ -257,23 +264,31 @@ module.exports = class ZohoClass {
 
     let searchData = [];
 
+    let response_array = [];
+
     for (let i = 0; i < options.chunk; i++) {
       searchData.push({ ...options, ...{ params: { ...options.params, page: options.params.page + i } } });
     }
 
-    if (!criteria.length) return cb({ statusCode: 400, code: "CRITERIA_LIMIT_EXCEEDED", message: "No criteria provided.", details: null });
+    if (!criteria.length) {
+      if (callback !== undefined) callback({ statusCode: 400, code: "CRITERIA_LIMIT_EXCEEDED", message: "No criteria provided.", details: null });
+      this.Log("error", "No criteria provided.");
+      return;
+    }
 
     return new Promise((resolve, reject) => {
       // Check if criteria is below max allowed
       const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
       if (criteria_matches.length > 10) {
-        cb({
-          statusCode: 400,
-          code: "CRITERIA_LIMIT_EXCEEDED",
-          message: "Cannot send more than 10 criterias together.",
-          details: null,
-        });
-        return reject();
+        if (callback !== undefined)
+          callback({
+            statusCode: 400,
+            code: "CRITERIA_LIMIT_EXCEEDED",
+            message: "Cannot send more than 10 criterias together.",
+            details: null,
+          });
+        this.Log("error", "Cannot send more than 10 criterias together.");
+        return;
       }
 
       searchData.map((row) => {
@@ -297,51 +312,29 @@ module.exports = class ZohoClass {
               search_array.push(DataReplace.replace(row, criteria));
             });
 
-            this._GetSearchChunk(
-              {
-                ...row,
-                module: moduleName,
-                params: {
-                  ...row.params,
-                  criteria: `(${search_array.join("OR")})`,
-                },
-              },
-              chunk,
-              (error, response_data, data, added_row) => {
-                cb(error, response_data, data);
+            this._GetSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: `(${search_array.join("OR")})` } }, chunk, (error, response_data, data, added_row) => {
+              if (callback !== undefined) callback(error, response_data, data);
+              if (added_row) maxCounter++;
 
-                if (added_row) maxCounter++;
+              response_array = response_array.concat({ error: error, response: response_data, data: data });
+              counter++;
 
-                counter++;
-
-                if (counter === maxCounter) return resolve();
-              }
-            );
+              if (counter === maxCounter) return resolve({ error: false, response: response_array, data: searchData });
+            });
           });
         } else {
           let counter = 0,
             maxCounter = 1;
 
-          this._GetSearchChunk(
-            {
-              ...row,
-              module: moduleName,
-              params: {
-                ...row.params,
-                criteria: criteria,
-              },
-            },
-            [],
-            (error, response_data, data, added_row) => {
-              cb(error, response_data, data);
+          this._GetSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: criteria } }, [], (error, response_data, data, added_row) => {
+            if (callback !== undefined) callback(error, response_data, data);
+            if (added_row) maxCounter++;
 
-              if (added_row) maxCounter++;
+            response_array = response_array.concat({ error: error, response: response_data, data: data });
+            counter++;
 
-              counter++;
-
-              if (counter === maxCounter) return resolve();
-            }
-          );
+            if (counter === maxCounter) return resolve({ error: false, response: response_array, data: searchData });
+          });
         }
       });
     });

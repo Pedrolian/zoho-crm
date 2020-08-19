@@ -1,6 +1,6 @@
 {
   "name": "import_zoho",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "scripts/index.js",
   "dependencies": {
@@ -13,7 +13,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "scripts/test.js"
+    "test": "node scripts/test.js"
   },
   "repository": {
     "type": "git",
