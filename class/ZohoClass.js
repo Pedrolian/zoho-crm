@@ -392,9 +392,13 @@ module.exports = class ZohoClass {
     });
   }
 
-  upsertRecords(moduleName, data, duplicate_check, cb) {
+  upsertRecords(moduleName, data, duplicate_check, callback) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
+
+    let response_array = [];
+
+    duplicate_check = Array.isArray(duplicate_check) ? duplicate_check : [duplicate_check];
 
     return new Promise((resolve, reject) => {
       data_chunks.map((row) => {
@@ -418,22 +422,34 @@ module.exports = class ZohoClass {
               res_counter++;
             });
 
-            cb(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            if (callback !== undefined) callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            response_array = response_array.concat({ error: false, response: { success: successData, error: errorData }, data: { module: moduleName, data: row } });
           } else {
             const response_data = JSON.parse(response.body);
-            cb(
-              {
+            if (callback !== undefined)
+              callback(
+                {
+                  statusCode: response.statusCode,
+                  code: response_data.code,
+                  message: response_data.message,
+                  details: response_data.details,
+                },
+                { success: successData, error: errorData },
+                { module: moduleName, data: row }
+              );
+            response_array = response_array.concat({
+              error: {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
                 details: response_data.details,
               },
-              { success: successData, error: errorData },
-              { module: moduleName, data: row }
-            );
+              response: { success: successData, error: errorData },
+              data: { module: moduleName, data: row },
+            });
           }
 
-          if (counter == data_chunks.length) return resolve();
+          if (counter == data_chunks.length) return resolve({ error: false, response: response_array, data: data });
         });
       });
     });
@@ -443,11 +459,11 @@ module.exports = class ZohoClass {
     //MODULES.delete
   }
 
-  getProfiles(cb) {
+  getProfiles(callback) {
     return new Promise((resolve, reject) => {
       this.StackPush("SETTINGS", "getProfiles", "", (response) => {
         const response_data = JSON.parse(response.body);
-        cb(false, response_data.profiles);
+        callback(false, response_data.profiles);
         return resolve({ error: false, data: response_data.profiles });
       });
     });

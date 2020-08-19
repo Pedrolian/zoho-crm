@@ -1,5 +1,3 @@
-const { addColors } = require("winston/lib/winston/config");
-
 // Require .env
 require("dotenv").config({ path: "./.env" });
 
@@ -30,28 +28,27 @@ ZohoImport.getId("Accounts", ["4448982000001817050", "4448982000001817051"], (er
 });
  */
 
+/* 
 // Search records
 ZohoImport.searchRecords(
   "Accounts",
   "(Account_Name:equals:$_name)",
   (error, response, data) => {
     // console.log({ type: "CB", error, response: response, data: data });
-    // console.log(data);
+    console.log(response);
   },
-  [
-    { name: "Wiki Consultoria" },
-    { name: "Wiki Consultoria 2" },
-    { name: "Wiki Consultoria 3" },
-    { name: "Wiki Consultoria 4" },
-    { name: "Wiki Consultoria 5" },
-    { name: "Wiki Consultoria 6" },
-    { name: "Wiki Consultoria 7" },
-    { name: "Wiki Consultoria 8" },
-    { name: "Wiki Consultoria 9" },
-    { name: "Wiki Consultoria 10" },
-    { name: "Wiki Consultoria 11" },
-  ]
+  [{ name: "Wiki Consultoria" }]
 ).then(({ error, response, data }) => {
   console.log({ type: "resolve", error, response: response.length, data });
   console.log(response[1]);
-});
+}); 
+*/
+
+/* 
+// Upsert records
+ZohoImport.upsertRecords("ImportacaoTeste", [{ Name: "Abc" }], "", (error, response, data) => {
+  // console.log({ error, response, data });
+  console.log({ type: "CB", error, response_success: response.success.length, response_error: response.error.length, data: data });
+}).then(({ error, response, data }) => {
+  console.log({ type: "RESOLVE", error, response_success: response[0].response.success.length, response_error: response[0].response.error.length, data: data });
+}); */
