@@ -1,4 +1,4 @@
-const ZCRMRestClient = require("zcrmsdk");
+const ZCRMRestClient = require("@pedrolian/zcrmsdk");
 
 const DataReplace = require("../utility/DataReplaceString.js");
 const ToOptions = require("../utility/ToOptions.js");
@@ -35,8 +35,7 @@ module.exports = class ZohoClass {
 
       let counter = 0;
 
-      let success_array = [],
-        error_array = [];
+      let resolve_array = [];
 
       data.map((tmpId) => {
         this.StackPush("MODULES", "get", { module: moduleName, id: tmpId }, (response) => {
@@ -49,7 +48,7 @@ module.exports = class ZohoClass {
 
             if (callback !== undefined) callback(false, response_data, { module: moduleName, data: tmpId });
 
-            success_array.push({ error: false, response: response_data[0], data: { module: moduleName, data: tmpId } });
+            resolve_array.push({ error: false, response: response_data[0], data: { module: moduleName, data: tmpId } });
           } // Error
           else {
             const response_data = JSON.parse(response.body);
@@ -67,14 +66,19 @@ module.exports = class ZohoClass {
                 { module: moduleName, data: tmpId }
               );
 
-            error_array.push({
-              error: { statusCode: response.statusCode, code: response_data.code, message: response_data.message, details: response_data.details },
+            resolve_array.push({
+              error: {
+                statusCode: response.statusCode,
+                code: response_data.code,
+                message: response_data.message,
+                details: response_data.details,
+              },
               response: null,
               data: { module: moduleName, data: tmpId },
             });
           }
 
-          if (counter == data.length) return resolve({ error: error_array, response: success_array, data: data });
+          if (counter == data.length) return resolve(resolve_array);
         });
       });
     });
@@ -107,7 +111,7 @@ module.exports = class ZohoClass {
           counter++;
 
           resolve_response = resolve_response.concat(response_data);
-          if (counter === maxCounter) return resolve({ error: error, response: resolve_response, data: data });
+          if (counter === maxCounter) return resolve(resolve_response);
         });
       });
     });
@@ -206,9 +210,11 @@ module.exports = class ZohoClass {
     });
   }
 
-  insertRecords(moduleName, data, cb) {
+  insertRecords(moduleName, data, callback) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
+
+    let response_array = [];
 
     return new Promise((resolve, reject) => {
       data_chunks.map((row) => {
@@ -232,23 +238,35 @@ module.exports = class ZohoClass {
               res_counter++;
             });
 
-            cb(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            if (callback !== undefined) callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            response_array = response_array.concat({ error: false, response: { success: successData, error: errorData }, data: { module: moduleName, data: row } });
           } // error
           else {
             const response_data = JSON.parse(response.body);
-            cb(
-              {
+            if (callback !== undefined)
+              callback(
+                {
+                  statusCode: response.statusCode,
+                  code: response_data.code,
+                  message: response_data.message,
+                  details: response_data.details,
+                },
+                { success: successData, error: errorData },
+                { module: moduleName, data: row }
+              );
+            response_array = response_array.concat({
+              error: {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
                 details: response_data.details,
               },
-              { success: successData, error: errorData },
-              { module: moduleName, data: row }
-            );
+              response: { success: successData, error: errorData },
+              data: { module: moduleName, data: row },
+            });
           }
 
-          if (counter == data_chunks.length) return resolve();
+          if (counter == data_chunks.length) return resolve(response_array);
         });
       });
     });
@@ -319,7 +337,7 @@ module.exports = class ZohoClass {
               response_array = response_array.concat({ error: error, response: response_data, data: data });
               counter++;
 
-              if (counter === maxCounter) return resolve({ error: false, response: response_array, data: searchData });
+              if (counter === maxCounter) return resolve(response_array);
             });
           });
         } else {
@@ -333,7 +351,7 @@ module.exports = class ZohoClass {
             response_array = response_array.concat({ error: error, response: response_data, data: data });
             counter++;
 
-            if (counter === maxCounter) return resolve({ error: false, response: response_array, data: searchData });
+            if (counter === maxCounter) return resolve(response_array);
           });
         }
       });
@@ -412,7 +430,7 @@ module.exports = class ZohoClass {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
               if (res.status == "success") {
-                successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
+                successData.push({ id: res.details.id, data: row[res_counter], zoho_response: res });
                 Logger.debug(`Upsert -- Module: [${moduleName}] ID: [${res.details.id}] - Type: [${res.message}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
@@ -449,7 +467,7 @@ module.exports = class ZohoClass {
             });
           }
 
-          if (counter == data_chunks.length) return resolve({ error: false, response: response_array, data: data });
+          if (counter == data_chunks.length) return resolve(response_array);
         });
       });
     });

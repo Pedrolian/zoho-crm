@@ -1,15 +1,15 @@
 {
-  "name": "import_zoho",
+  "name": "importzoho",
   "version": "1.0.5",
   "description": "",
   "main": "scripts/index.js",
   "dependencies": {
+    "@pedrolian/zcrmsdk": "^1.0.1",
     "axios": "^0.19.2",
     "csv-parser": "^2.3.3",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.19",
-    "winston": "^3.3.3",
-    "zcrmsdk": "git+https://github.com/Pedrolian/ZCRMSDK.git"
+    "winston": "^3.3.3"
   },
   "devDependencies": {},
   "scripts": {
