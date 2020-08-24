@@ -2,14 +2,14 @@
 require("dotenv").config({ path: "../.env" });
 
 const ZohoImport = require("./index");
-
+/* 
 // Get records
-ZohoImport.getRecords("Accounts", {}, (error, response, data) => {
-  console.log({ type: "CB", error, response: response[0].id, data });
+ZohoImport.getRecords("Accounts", { headers: { "If-Modified-Since": "2020-08-20" }, chunk: 5 }, (error, response, data) => {
+  console.log({ type: "CB", error, response: response.length ? response[0].id : null, data });
 }).then((response) => {
   console.log(response.length);
 });
-
+ */
 /* 
 ZohoImport.getRecords("Accounts", {}).then(({ error, response, data }) => {
   console.log({ type: "resolve", error, response: response[0].id, data });
@@ -22,12 +22,11 @@ ZohoImport.getRecords("Accounts", {}, (error, response, data) => {
 */
 /* 
 // get Id
-ZohoImport.getId("Accounts", ["4448982000001817050", "4448982000001817051"], (error, response, data) => {
+ZohoImport.getId("Accounts", ["116652000047855107"], (error, response, data) => {
   console.log({ error, response: !error ? response.length : response, data });
 }).then((response) => {
-  console.log(response);
+  console.log(response[0].response.id);
 });
-
  */
 // Search records
 /* // Search records
