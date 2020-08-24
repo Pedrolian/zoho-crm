@@ -100,10 +100,60 @@ module.exports = class ZohoClass {
       maxCounter = data.length;
 
     let resolve_response = [];
+    let record_tracker_last_page_no_results = null; // Keep track of the highest page checked that yileded no result so chunk doesn't go over it.
+
+    const _processRecordChunk = (moduleName, options, cb) => {
+      this.StackPush("MODULES", "get", { module: moduleName, headers: options.headers, params: options.params }, (response) => {
+        if (response.statusCode === 200) {
+          // Found something
+          const response_data = JSON.parse(response.body);
+          Logger.debug(
+            `GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${
+              response_data.info.more_records
+            } - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`
+          );
+
+          if ((options.headers.hasOwnProperty("If-Modified-Since") && response_data.info.more_records) || (options.hasOwnProperty("all") && response_data.info.more_records)) {
+            // Only return more than 200 if options are passed
+            // There are more pages..
+            options.params.page = options.chunk + options.params.page;
+            if (record_tracker_last_page_no_results === null || options.params.page < record_tracker_last_page_no_results) {
+              _processRecordChunk(moduleName, options, cb);
+              return cb(false, response_data.data, { module: moduleName, data: options }, true);
+            } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
+          } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
+        } else if (response.statusCode === 404 || response.statusCode === 304 || response.statusCode === 204) {
+          // No results
+          // Set range so when looping if its still within range of highest non found page it will attempt to get it
+          if (record_tracker_last_page_no_results === null) record_tracker_last_page_no_results = options.params.page;
+          else if (record_tracker_last_page_no_results > options.params.page) record_tracker_last_page_no_results = options.params.page;
+
+          Logger.warn(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: 0`);
+          return cb(false, [], { module: moduleName, data: options }, false);
+        } // Error
+        else {
+          const response_data = JSON.parse(response.body);
+          Logger.error(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page}`);
+          return (
+            cb(
+              {
+                statusCode: response.statusCode,
+                code: response_data.code,
+                message: response_data.message,
+                details: response_data.details,
+              },
+              [],
+              { module: moduleName, data: options }
+            ),
+            false
+          );
+        }
+      });
+    };
 
     return new Promise((resolve, reject) => {
       data.map((row) => {
-        this._GetRecordChunk(moduleName, row, (error, response_data, chunk_data, added_row) => {
+        _processRecordChunk(moduleName, row, (error, response_data, chunk_data, added_row) => {
           if (callback !== undefined) callback(error, response_data, chunk_data);
 
           if (added_row) maxCounter++;
@@ -114,51 +164,6 @@ module.exports = class ZohoClass {
           if (counter === maxCounter) return resolve(resolve_response);
         });
       });
-    });
-  }
-
-  _GetRecordChunk(moduleName, options, cb) {
-    this.StackPush("MODULES", "get", { module: moduleName, headers: options.headers, params: options.params }, (response) => {
-      if (response.statusCode === 200) {
-        // Found something
-        const response_data = JSON.parse(response.body);
-        Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${response_data.info.more_records}`);
-
-        if ((options.headers.hasOwnProperty("If-Modified-Since") && response_data.info.more_records) || (options.hasOwnProperty("all") && response_data.info.more_records)) {
-          // Only return more than 200 if options are passed
-          // There are more pages..
-          options.params.page = options.chunk + options.params.page;
-          if (!this.GetRecordTracker.hasOwnProperty(moduleName) || options.params.page < this.GetRecordTracker[moduleName]) {
-            this._GetRecordChunk(moduleName, options, cb);
-            return cb(false, response_data.data, { module: moduleName, data: options }, true);
-          } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
-        } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
-      } else if (response.statusCode === 404 || response.statusCode === 304 || response.statusCode === 204) {
-        // No results
-        // Set range so when looping if its still within range of highest non found page it will attempt to get it
-        if (!this.GetRecordTracker.hasOwnProperty(moduleName)) this.GetRecordTracker[moduleName] = options.params.page;
-        else if (this.GetRecordTracker[moduleName] > options.params.page) this.GetRecordTracker[moduleName] = options.params.page;
-
-        Logger.warn(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: 0`);
-        return cb(false, [], { module: moduleName, data: options }, false);
-      } // Error
-      else {
-        const response_data = JSON.parse(response.body);
-        Logger.error(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page}`);
-        return (
-          cb(
-            {
-              statusCode: response.statusCode,
-              code: response_data.code,
-              message: response_data.message,
-              details: response_data.details,
-            },
-            [],
-            { module: moduleName, data: options }
-          ),
-          false
-        );
-      }
     });
   }
 
@@ -294,6 +299,58 @@ module.exports = class ZohoClass {
       return;
     }
 
+    const _processSearchChunk = (searchData, data, cb) => {
+      Logger.debug(`Searching -- Module: [${searchData.module}] Page: ${searchData.params.page} - Criteria: ${searchData.params.criteria}`);
+
+      this.StackPush("MODULES", "search", searchData, (response) => {
+        if (response.statusCode === 200) {
+          // Found something
+          const response_data = JSON.parse(response.body);
+          Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${response_data.data.length} - Criteria: ${searchData.params.criteria}`);
+          if (response_data.info.more_records) {
+            searchData.params.page = searchData.chunk + searchData.params.page;
+            _processSearchChunk(searchData, data, cb);
+            return cb(false, response_data.data, { module: searchData.module, data: data }, true);
+          } else return cb(false, response_data.data, { module: searchData.module, data: data }, false);
+        } else if (response.statusCode === 204) {
+          // No results
+          Logger.debug(`Searched -- Module: [${searchData.module}]  Page: ${searchData.params.page} - Response: 0`);
+          return cb(false, [], { module: searchData.module, data: data }, false);
+        } // Error
+        else {
+          if (response.statusCode === 400 || response.statusCode == 429) {
+            const response_data = JSON.parse(response.body);
+            Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
+            return cb(
+              {
+                statusCode: response.statusCode,
+                code: response_data.code,
+                message: response_data.message,
+                details: response_data.details,
+              },
+              [],
+              { module: searchData.module, data: data },
+              false
+            );
+          } else {
+            const response_data = response;
+            Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
+            return cb(
+              {
+                statusCode: response.statusCode,
+                code: response_data.code,
+                message: response_data.message,
+                details: response_data.details,
+              },
+              [],
+              { module: searchData.module, data: data },
+              false
+            );
+          }
+        }
+      });
+    };
+
     return new Promise((resolve, reject) => {
       // Check if criteria is below max allowed
       const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
@@ -330,7 +387,7 @@ module.exports = class ZohoClass {
               search_array.push(DataReplace.replace(row, criteria));
             });
 
-            this._GetSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: `(${search_array.join("OR")})` } }, chunk, (error, response_data, data, added_row) => {
+            _processSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: `(${search_array.join("OR")})` } }, chunk, (error, response_data, data, added_row) => {
               if (callback !== undefined) callback(error, response_data, data);
               if (added_row) maxCounter++;
 
@@ -344,7 +401,7 @@ module.exports = class ZohoClass {
           let counter = 0,
             maxCounter = 1;
 
-          this._GetSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: criteria } }, [], (error, response_data, data, added_row) => {
+          _processSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: criteria } }, [], (error, response_data, data, added_row) => {
             if (callback !== undefined) callback(error, response_data, data);
             if (added_row) maxCounter++;
 
@@ -355,58 +412,6 @@ module.exports = class ZohoClass {
           });
         }
       });
-    });
-  }
-
-  _GetSearchChunk(searchData, data, cb) {
-    Logger.debug(`Searching -- Module: [${searchData.module}] Page: ${searchData.params.page} - Criteria: ${searchData.params.criteria}`);
-
-    this.StackPush("MODULES", "search", searchData, (response) => {
-      if (response.statusCode === 200) {
-        // Found something
-        const response_data = JSON.parse(response.body);
-        Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${response_data.data.length} - Criteria: ${searchData.params.criteria}`);
-        if (response_data.info.more_records) {
-          searchData.params.page = searchData.chunk + searchData.params.page;
-          this._GetSearchChunk(searchData, data, cb);
-          return cb(false, response_data.data, { module: searchData.module, data: data }, true);
-        } else return cb(false, response_data.data, { module: searchData.module, data: data }, false);
-      } else if (response.statusCode === 204) {
-        // No results
-        Logger.debug(`Searched -- Module: [${searchData.module}]  Page: ${searchData.params.page} - Response: 0`);
-        return cb(false, [], { module: searchData.module, data: data }, false);
-      } // Error
-      else {
-        if (response.statusCode === 400 || response.statusCode == 429) {
-          const response_data = JSON.parse(response.body);
-          Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
-          return cb(
-            {
-              statusCode: response.statusCode,
-              code: response_data.code,
-              message: response_data.message,
-              details: response_data.details,
-            },
-            [],
-            { module: searchData.module, data: data },
-            false
-          );
-        } else {
-          const response_data = response;
-          Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
-          return cb(
-            {
-              statusCode: response.statusCode,
-              code: response_data.code,
-              message: response_data.message,
-              details: response_data.details,
-            },
-            [],
-            { module: searchData.module, data: data },
-            false
-          );
-        }
-      }
     });
   }
 
@@ -484,59 +489,6 @@ module.exports = class ZohoClass {
         callback(false, response_data.profiles);
         return resolve({ error: false, data: response_data.profiles });
       });
-    });
-  }
-
-  getRoles() {
-    //ROLES.getRoles
-  }
-
-  convertLead() {
-    //ACTIONS.convert
-  }
-
-  getUsers() {
-    //USERS.get
-  }
-
-  uploadFile() {
-    //ATTACHMENTS.uploadFile
-  }
-  downloadFile() {}
-  deleteFile() {}
-
-  uploadLink() {
-    //ATTACHMENTS.uploadLink
-  }
-
-  uploadPhoto() {
-    //ATTACHMENTS.uploadPhoto
-  }
-  downloadPhoto() {}
-  deletePhoto() {}
-
-  coql(searchData) {
-    /*
-            `select Account_Name 
-                from Accounts 
-                where Modified_Time between '2020-01-01T00:00:01-03:00' and '2020-02-14T23:59:59-03:00' 
-                order by Modified_Time asc limit 200
-            `
-        */
-    ZCRMRestClient.API.MODULES.coql({
-      body: {
-        select_query: `
-            SELECT First_Name, Last_Name, Full_Name, Account_Name
-            FROM Contacts
-            WHERE Account_Name = '116652000029367151'
-            ORDER BY Full_Name ASC
-            `,
-      },
-    }).then((response) => {
-      console.log(response.statusCode);
-      console.log(JSON.parse(response.body));
-      //console.log( JSON.parse(response.body).data.length );
-      console.log(JSON.parse(response.body).data[0]);
     });
   }
 };
