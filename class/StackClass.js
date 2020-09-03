@@ -1,6 +1,3 @@
-const Logger = require("../utility/WinstonLogger.js");
-Logger.setPath("../log");
-
 const ZCRMRestClient = require("@pedrolian/zcrmsdk");
 
 module.exports = class Stack {

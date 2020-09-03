@@ -1,10 +1,5 @@
-const ZCRMRestClient = require("@pedrolian/zcrmsdk");
-
 const DataReplace = require("../utility/DataReplaceString.js");
 const ToOptions = require("../utility/ToOptions.js");
-
-const Logger = require("../utility/WinstonLogger.js");
-Logger.setPath("../log");
 
 const _ = require("lodash");
 

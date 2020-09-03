@@ -3,7 +3,7 @@ require("dotenv").config({ path: "../.env" });
 
 // Initiate logs
 Logger = require("../utility/WinstonLogger.js");
-Logger.setPath(process.env.WINSTON_LOG_PATH || "../log");
+if (process.env.WINSTON_LOG_PATH) Logger.setPath(process.env.WINSTON_LOG_PATH);
 
 // Initiate Stack Class
 const StackClass = require("../class/StackClass.js");
