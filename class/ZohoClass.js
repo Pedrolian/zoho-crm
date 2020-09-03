@@ -107,11 +107,7 @@ module.exports = class ZohoClass {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
-          Logger.debug(
-            `GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${
-              response_data.info.more_records
-            } - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`
-          );
+          Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${response_data.info.more_records} - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`);
 
           if ((options.headers.hasOwnProperty("If-Modified-Since") && response_data.info.more_records) || (options.hasOwnProperty("all") && response_data.info.more_records)) {
             // Only return more than 200 if options are passed
@@ -370,12 +366,7 @@ module.exports = class ZohoClass {
         if (data.length) {
           const search_criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+)\)/gim);
           //const chunk_size = data.length * search_criteria_matches.length < 10 ? 10 : (10 / search_criteria_matches.length) >> 0;
-          const chunk_size =
-            data.length * search_criteria_matches.length < 10
-              ? this.StackClass.PoolSize < 10 && this.StackClass.PoolSize != 1
-                ? this.StackClass.PoolSize
-                : 10
-              : (10 / search_criteria_matches.length) >> 0;
+          const chunk_size = data.length * search_criteria_matches.length < 10 ? (this.StackClass.PoolSize < 10 && this.StackClass.PoolSize != 1 ? this.StackClass.PoolSize : 10) : (10 / search_criteria_matches.length) >> 0;
           const data_chunks = _.chunk(data, chunk_size);
 
           let counter = 0,
@@ -478,8 +469,68 @@ module.exports = class ZohoClass {
     });
   }
 
-  deleteRecords(moduleName, data, cb) {
-    //MODULES.delete
+  deleteRecords(moduleName, data, callback) {
+    const data_chunks = _.chunk(data, 100);
+    let counter = 0;
+
+    let response_array = [];
+
+    // TODO: Data must be array of Ids, check if array of object or array of Ids, assuming for now array of Ids..
+
+    return new Promise((resolve, reject) => {
+      data_chunks.map((row) => {
+        let res_counter = 0;
+        let errorData = [],
+          successData = [];
+
+        this.StackPush("MODULES", "delete", { module: moduleName, id: row.join(",") }, (response) => {
+          counter++;
+          if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
+            const response_data = JSON.parse(response.body).data;
+            response_data.map((res) => {
+              if (res.status == "success") {
+                successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
+                Logger.debug(`Deleted -- Module: [${moduleName}] ID: [${res.details.id}]`);
+              } else {
+                errorData.push({ error: res, data: row[res_counter] });
+                Logger.warn(`Deleted -- Module: [${moduleName}]`);
+                this.Log("warn", { error: res, data: row[res_counter] });
+              }
+              res_counter++;
+            });
+
+            if (callback !== undefined) callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            response_array = response_array.concat({ error: false, response: { success: successData, error: errorData }, data: { module: moduleName, data: row } });
+          } // error
+          else {
+            const response_data = JSON.parse(response.body);
+            if (callback !== undefined)
+              callback(
+                {
+                  statusCode: response.statusCode,
+                  code: response_data.code,
+                  message: response_data.message,
+                  details: response_data.details,
+                },
+                { success: successData, error: errorData },
+                { module: moduleName, data: row }
+              );
+            response_array = response_array.concat({
+              error: {
+                statusCode: response.statusCode,
+                code: response_data.code,
+                message: response_data.message,
+                details: response_data.details,
+              },
+              response: { success: successData, error: errorData },
+              data: { module: moduleName, data: row },
+            });
+          }
+
+          if (counter == data_chunks.length) return resolve(response_array);
+        });
+      });
+    });
   }
 
   getProfiles(callback) {
