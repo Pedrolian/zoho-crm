@@ -537,4 +537,20 @@ module.exports = class ZohoClass {
       });
     });
   }
+
+  shareRecord(moduleName, id, data, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush("ACTIONS", "share", { module: moduleName, id: id, body: data }, (response) => {
+        const response_data = JSON.parse(response.body);
+
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback({ success: true, error: false, data: { ...response_data.share[0], details: { entityId: id } } });
+          else callback({ success: false, error: response_data, data: null });
+        }
+
+        if (response.statusCode === 200) return resolve({ success: true, error: false, data: { ...response_data.share[0], details: { entityId: id } } });
+        else return resolve({ success: false, error: response_data, data: null });
+      });
+    });
+  }
 };
