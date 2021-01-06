@@ -5,7 +5,7 @@
   "main": "scripts/index.js",
   "dependencies": {
     "@pedrolian/zcrmsdk": "^1.0.4",
-    "axios": "^0.20.0",
+    "axios": "^0.21.1",
     "csv-parser": "^2.3.3",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.20",
