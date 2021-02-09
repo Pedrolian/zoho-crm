@@ -528,12 +528,25 @@ module.exports = class ZohoClass {
     });
   }
 
-  getProfiles(callback) {
+  getProfiles(id, callback) {
+    id = id || "";
     return new Promise((resolve, reject) => {
-      this.StackPush("SETTINGS", "getProfiles", "", (response) => {
-        const response_data = JSON.parse(response.body);
-        callback(false, response_data.profiles);
-        return resolve({ error: false, data: response_data.profiles });
+      this.StackPush("SETTINGS", "getProfiles", { id }, (response) => {
+        if(response.statusCode === 200)
+        {
+            const response_data = JSON.parse(response.body);
+            if (callback !== undefined) {
+                callback(false, response_data.profiles);
+            }
+            return resolve({ error: false, data: response_data.profiles });
+        }
+        else
+        {
+            if (callback !== undefined) {
+                callback(true, []);
+            }
+            return resolve({ error: true, data: [] });
+        }
       });
     });
   }
