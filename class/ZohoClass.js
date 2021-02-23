@@ -21,7 +21,8 @@ module.exports = class ZohoClass {
     });
   }
 
-  getId(moduleName, data, callback) {
+  getId(moduleName, data, callback, options) {
+    options = ToOptions.parse(options);
     data = Array.isArray(data) ? data : [data];
 
     return new Promise((resolve, reject) => {
@@ -33,7 +34,7 @@ module.exports = class ZohoClass {
       let resolve_array = [];
 
       data.map((tmpId) => {
-        this.StackPush("MODULES", "get", { module: moduleName, id: tmpId }, (response) => {
+        this.StackPush("MODULES", "get", { module: moduleName, id: tmpId, ...options }, (response) => {
           counter++;
 
           if (response.statusCode === 200) {
@@ -532,20 +533,17 @@ module.exports = class ZohoClass {
     id = id || "";
     return new Promise((resolve, reject) => {
       this.StackPush("SETTINGS", "getProfiles", { id }, (response) => {
-        if(response.statusCode === 200)
-        {
-            const response_data = JSON.parse(response.body);
-            if (callback !== undefined) {
-                callback(false, response_data.profiles);
-            }
-            return resolve({ error: false, data: response_data.profiles });
-        }
-        else
-        {
-            if (callback !== undefined) {
-                callback(true, []);
-            }
-            return resolve({ error: true, data: [] });
+        if (response.statusCode === 200) {
+          const response_data = JSON.parse(response.body);
+          if (callback !== undefined) {
+            callback(false, response_data.profiles);
+          }
+          return resolve({ error: false, data: response_data.profiles });
+        } else {
+          if (callback !== undefined) {
+            callback(true, []);
+          }
+          return resolve({ error: true, data: [] });
         }
       });
     });
