@@ -1,7 +1,7 @@
-const DataReplace = require("../utility/DataReplaceString.js");
-const ToOptions = require("../utility/ToOptions.js");
+const DataReplace = require('../utility/DataReplaceString.js');
+const ToOptions = require('../utility/ToOptions.js');
 
-const _ = require("lodash");
+const _ = require('lodash');
 
 module.exports = class ZohoClass {
   constructor(StackClass) {
@@ -17,7 +17,7 @@ module.exports = class ZohoClass {
   Log(level, message) {
     message = Array.isArray(message) ? message : [message];
     message.map((msg) => {
-      Logger.log(level, typeof msg === "object" && msg !== null ? JSON.stringify(msg) : msg);
+      Logger.log(level, typeof msg === 'object' && msg !== null ? JSON.stringify(msg) : msg);
     });
   }
 
@@ -34,7 +34,7 @@ module.exports = class ZohoClass {
       let resolve_array = [];
 
       data.map((tmpId) => {
-        this.StackPush("MODULES", "get", { module: moduleName, id: tmpId, ...options }, (response) => {
+        this.StackPush('MODULES', 'get', { module: moduleName, id: tmpId, ...options }, (response) => {
           counter++;
 
           if (response.statusCode === 200) {
@@ -56,7 +56,7 @@ module.exports = class ZohoClass {
                   statusCode: response.statusCode,
                   code: response_data.code,
                   message: response_data.message,
-                  details: response_data.details,
+                  details: response_data.details
                 },
                 null,
                 { module: moduleName, data: tmpId }
@@ -67,10 +67,10 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               response: null,
-              data: { module: moduleName, data: tmpId },
+              data: { module: moduleName, data: tmpId }
             });
           }
 
@@ -82,9 +82,9 @@ module.exports = class ZohoClass {
 
   getRecords(moduleName, options, callback) {
     options = ToOptions.parse(options);
-    options.params = options.hasOwnProperty("params") ? options.params : { page: 1, per_page: 200 };
-    options.chunk = options.hasOwnProperty("chunk") ? options.chunk : 1;
-    options.headers = options.hasOwnProperty("headers") ? options.headers : {};
+    options.params = options.hasOwnProperty('params') ? options.params : { page: 1, per_page: 200 };
+    options.chunk = options.hasOwnProperty('chunk') ? options.chunk : 1;
+    options.headers = options.hasOwnProperty('headers') ? options.headers : {};
 
     let data = [];
 
@@ -99,13 +99,13 @@ module.exports = class ZohoClass {
     let record_tracker_last_page_no_results = null; // Keep track of the highest page checked that yileded no result so chunk doesn't go over it.
 
     const _processRecordChunk = (moduleName, options, cb) => {
-      this.StackPush("MODULES", "get", { module: moduleName, headers: options.headers, params: options.params }, (response) => {
+      this.StackPush('MODULES', 'get', { module: moduleName, headers: options.headers, params: options.params }, (response) => {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
           Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${response_data.info.more_records} - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`);
 
-          if ((options.headers.hasOwnProperty("If-Modified-Since") && response_data.info.more_records) || (options.hasOwnProperty("all") && response_data.info.more_records)) {
+          if ((options.headers.hasOwnProperty('If-Modified-Since') && response_data.info.more_records) || (options.hasOwnProperty('all') && response_data.info.more_records)) {
             // Only return more than 200 if options are passed
             // There are more pages..
             options.params.page = options.chunk + options.params.page;
@@ -132,7 +132,7 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               [],
               { module: moduleName, data: options }
@@ -159,7 +159,7 @@ module.exports = class ZohoClass {
     });
   }
 
-  updateRecords(moduleName, data, cb) {
+  updateRecords(moduleName, data, cb, options) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
@@ -169,18 +169,18 @@ module.exports = class ZohoClass {
         let errorData = [],
           successData = [];
 
-        this.StackPush("MODULES", "put", { module: moduleName, body: { data: row } }, (response) => {
+        this.StackPush('MODULES', 'put', { module: moduleName, body: { data: row }, ...options }, (response) => {
           counter++;
           if (response.statusCode === 200 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
-              if (res.status == "success") {
+              if (res.status == 'success') {
                 successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Updated -- Module: [${moduleName}] ID: [${row[res_counter].id}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Updated -- Module: [${moduleName}] ID: [${row[res_counter].id}]`);
-                this.Log("warn", { error: res, data: row[res_counter] });
+                this.Log('warn', { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -194,7 +194,7 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               { success: successData, error: errorData },
               { module: moduleName, data: row }
@@ -219,18 +219,18 @@ module.exports = class ZohoClass {
         let errorData = [],
           successData = [];
 
-        this.StackPush("MODULES", "post", { module: moduleName, body: { data: row } }, (response) => {
+        this.StackPush('MODULES', 'post', { module: moduleName, body: { data: row } }, (response) => {
           counter++;
           if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
-              if (res.status == "success") {
+              if (res.status == 'success') {
                 successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Insert -- Module: [${moduleName}] ID: [${res.details.id}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Insert -- Module: [${moduleName}]`);
-                this.Log("warn", { error: res, data: row[res_counter] });
+                this.Log('warn', { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -246,7 +246,7 @@ module.exports = class ZohoClass {
                   statusCode: response.statusCode,
                   code: response_data.code,
                   message: response_data.message,
-                  details: response_data.details,
+                  details: response_data.details
                 },
                 { success: successData, error: errorData },
                 { module: moduleName, data: row }
@@ -256,10 +256,10 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               response: { success: successData, error: errorData },
-              data: { module: moduleName, data: row },
+              data: { module: moduleName, data: row }
             });
           }
 
@@ -273,9 +273,9 @@ module.exports = class ZohoClass {
     data = data || [];
 
     options = ToOptions.parse(options);
-    options.params = options.hasOwnProperty("params") ? options.params : { page: 1, per_page: 200 };
-    options.chunk = options.hasOwnProperty("chunk") ? options.chunk : 1;
-    options.headers = options.hasOwnProperty("headers") ? options.headers : {};
+    options.params = options.hasOwnProperty('params') ? options.params : { page: 1, per_page: 200 };
+    options.chunk = options.hasOwnProperty('chunk') ? options.chunk : 1;
+    options.headers = options.hasOwnProperty('headers') ? options.headers : {};
 
     let searchData = [];
 
@@ -286,15 +286,15 @@ module.exports = class ZohoClass {
     }
 
     if (!criteria.length) {
-      if (callback !== undefined) callback({ statusCode: 400, code: "CRITERIA_LIMIT_EXCEEDED", message: "No criteria provided.", details: null });
-      this.Log("error", "No criteria provided.");
+      if (callback !== undefined) callback({ statusCode: 400, code: 'CRITERIA_LIMIT_EXCEEDED', message: 'No criteria provided.', details: null });
+      this.Log('error', 'No criteria provided.');
       return;
     }
 
     const _processSearchChunk = (searchData, data, cb) => {
       Logger.debug(`Searching -- Module: [${searchData.module}] Page: ${searchData.params.page} - Criteria: ${searchData.params.criteria}`);
 
-      this.StackPush("MODULES", "search", searchData, (response) => {
+      this.StackPush('MODULES', 'search', searchData, (response) => {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
@@ -318,7 +318,7 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               [],
               { module: searchData.module, data: data },
@@ -332,7 +332,7 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               [],
               { module: searchData.module, data: data },
@@ -350,11 +350,11 @@ module.exports = class ZohoClass {
         if (callback !== undefined)
           callback({
             statusCode: 400,
-            code: "CRITERIA_LIMIT_EXCEEDED",
-            message: "Cannot send more than 10 criterias together.",
-            details: null,
+            code: 'CRITERIA_LIMIT_EXCEEDED',
+            message: 'Cannot send more than 10 criterias together.',
+            details: null
           });
-        this.Log("error", "Cannot send more than 10 criterias together.");
+        this.Log('error', 'Cannot send more than 10 criterias together.');
         return;
       }
 
@@ -374,7 +374,7 @@ module.exports = class ZohoClass {
               search_array.push(DataReplace.replace(row, criteria));
             });
 
-            _processSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: `(${search_array.join("OR")})` } }, chunk, (error, response_data, data, added_row) => {
+            _processSearchChunk({ ...row, module: moduleName, params: { ...row.params, criteria: `(${search_array.join('OR')})` } }, chunk, (error, response_data, data, added_row) => {
               if (callback !== undefined) callback(error, response_data, data);
               if (added_row) maxCounter++;
 
@@ -416,18 +416,18 @@ module.exports = class ZohoClass {
         let errorData = [],
           successData = [];
 
-        this.StackPush("MODULES", "upsert", { module: moduleName, body: { data: row, duplicate_check_fields: duplicate_check } }, (response) => {
+        this.StackPush('MODULES', 'upsert', { module: moduleName, body: { data: row, duplicate_check_fields: duplicate_check } }, (response) => {
           counter++;
           if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
-              if (res.status == "success") {
+              if (res.status == 'success') {
                 successData.push({ id: res.details.id, data: row[res_counter], zoho_response: res });
                 Logger.debug(`Upsert -- Module: [${moduleName}] ID: [${res.details.id}] - Type: [${res.message}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Upsert -- Module: [${moduleName}]`);
-                this.Log("warn", { error: res, data: row[res_counter] });
+                this.Log('warn', { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -442,7 +442,7 @@ module.exports = class ZohoClass {
                   statusCode: response.statusCode,
                   code: response_data.code,
                   message: response_data.message,
-                  details: response_data.details,
+                  details: response_data.details
                 },
                 { success: successData, error: errorData },
                 { module: moduleName, data: row }
@@ -452,10 +452,10 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               response: { success: successData, error: errorData },
-              data: { module: moduleName, data: row },
+              data: { module: moduleName, data: row }
             });
           }
 
@@ -479,18 +479,18 @@ module.exports = class ZohoClass {
         let errorData = [],
           successData = [];
 
-        this.StackPush("MODULES", "delete", { module: moduleName, id: row.join(",") }, (response) => {
+        this.StackPush('MODULES', 'delete', { module: moduleName, id: row.join(',') }, (response) => {
           counter++;
           if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
-              if (res.status == "success") {
+              if (res.status == 'success') {
                 successData.push({ id: res.details.id, ...row[res_counter], zoho_response: res });
                 Logger.debug(`Deleted -- Module: [${moduleName}] ID: [${res.details.id}]`);
               } else {
                 errorData.push({ error: res, data: row[res_counter] });
                 Logger.warn(`Deleted -- Module: [${moduleName}]`);
-                this.Log("warn", { error: res, data: row[res_counter] });
+                this.Log('warn', { error: res, data: row[res_counter] });
               }
               res_counter++;
             });
@@ -506,7 +506,7 @@ module.exports = class ZohoClass {
                   statusCode: response.statusCode,
                   code: response_data.code,
                   message: response_data.message,
-                  details: response_data.details,
+                  details: response_data.details
                 },
                 { success: successData, error: errorData },
                 { module: moduleName, data: row }
@@ -516,10 +516,10 @@ module.exports = class ZohoClass {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
-                details: response_data.details,
+                details: response_data.details
               },
               response: { success: successData, error: errorData },
-              data: { module: moduleName, data: row },
+              data: { module: moduleName, data: row }
             });
           }
 
@@ -530,9 +530,9 @@ module.exports = class ZohoClass {
   }
 
   getProfiles(id, callback) {
-    id = id || "";
+    id = id || '';
     return new Promise((resolve, reject) => {
-      this.StackPush("SETTINGS", "getProfiles", { id }, (response) => {
+      this.StackPush('SETTINGS', 'getProfiles', { id }, (response) => {
         if (response.statusCode === 200) {
           const response_data = JSON.parse(response.body);
           if (callback !== undefined) {
@@ -551,7 +551,7 @@ module.exports = class ZohoClass {
 
   shareRecord(moduleName, id, data, callback) {
     return new Promise((resolve, reject) => {
-      this.StackPush("ACTIONS", "share", { module: moduleName, id: id, body: data }, (response) => {
+      this.StackPush('ACTIONS', 'share', { module: moduleName, id: id, body: data }, (response) => {
         const response_data = JSON.parse(response.body);
 
         if (callback !== undefined) {
