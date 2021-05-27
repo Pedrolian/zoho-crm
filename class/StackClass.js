@@ -1,4 +1,4 @@
-const ZCRMRestClient = require("@pedrolian/zcrmsdk");
+const ZCRMRestClient = require('@pedrolian/zcrmsdk');
 
 module.exports = class Stack {
   constructor(poolSize, maxAttempts, delayAttempt) {
@@ -13,7 +13,7 @@ module.exports = class Stack {
     for (let i = 0; i < this.PoolSize; i++) {
       this._Connections.push({
         id: i,
-        isProcessing: false,
+        isProcessing: false
       });
     }
 

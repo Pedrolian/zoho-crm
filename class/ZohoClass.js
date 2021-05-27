@@ -5,15 +5,20 @@ const _ = require('lodash');
 
 module.exports = class ZohoClass {
   constructor(StackClass) {
-    //console.log(`Constructor for Zoho called...`);
     this.GetRecordTracker = {};
     this.StackClass = StackClass;
   }
 
-  StackPush(apiMethod, moduleName, data, cb) {
-    this.StackClass.push(apiMethod, moduleName, data, cb);
+  StackPush(apiMethod, moduleName, data, callback) {
+    this.StackClass.push(apiMethod, moduleName, data, callback);
   }
 
+  /**
+   * Log to console and file
+   * @param {String} level WinstonConsole level to use
+   * @param {[String|Object]|Object} message Array of Strings/Objects or Object to log.
+   * @return void
+   */
   Log(level, message) {
     message = Array.isArray(message) ? message : [message];
     message.map((msg) => {
@@ -21,6 +26,14 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Lookup IDs to a specified  Module
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Array|Object} data Ids to lookup in ZohoCRM for specified module
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @param {Object} options Extra options allowed to send with request
+   * @returns {Promise}
+   */
   getId(moduleName, data, callback, options) {
     options = ToOptions.parse(options);
     data = Array.isArray(data) ? data : [data];
@@ -80,6 +93,13 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Lookup records of a specified Module, allowing to get from a starting page and/or from starting date
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Object} options Extra options allowed to send with request
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @returns {Promise}
+   */
   getRecords(moduleName, options, callback) {
     options = ToOptions.parse(options);
     options.params = options.hasOwnProperty('params') ? options.params : { page: 1, per_page: 200 };
@@ -98,7 +118,7 @@ module.exports = class ZohoClass {
     let resolve_response = [];
     let record_tracker_last_page_no_results = null; // Keep track of the highest page checked that yileded no result so chunk doesn't go over it.
 
-    const _processRecordChunk = (moduleName, options, cb) => {
+    const _processRecordChunk = (moduleName, options, callback) => {
       this.StackPush('MODULES', 'get', { module: moduleName, headers: options.headers, params: options.params }, (response) => {
         if (response.statusCode === 200) {
           // Found something
@@ -110,10 +130,10 @@ module.exports = class ZohoClass {
             // There are more pages..
             options.params.page = options.chunk + options.params.page;
             if (record_tracker_last_page_no_results === null || options.params.page < record_tracker_last_page_no_results) {
-              _processRecordChunk(moduleName, options, cb);
-              return cb(false, response_data.data, { module: moduleName, data: options }, true);
-            } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
-          } else return cb(false, response_data.data, { module: moduleName, data: options }, false);
+              _processRecordChunk(moduleName, options, callback);
+              return callback(false, response_data.data, { module: moduleName, data: options }, true);
+            } else return callback(false, response_data.data, { module: moduleName, data: options }, false);
+          } else return callback(false, response_data.data, { module: moduleName, data: options }, false);
         } else if (response.statusCode === 404 || response.statusCode === 304 || response.statusCode === 204) {
           // No results
           // Set range so when looping if its still within range of highest non found page it will attempt to get it
@@ -121,13 +141,13 @@ module.exports = class ZohoClass {
           else if (record_tracker_last_page_no_results > options.params.page) record_tracker_last_page_no_results = options.params.page;
 
           Logger.warn(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: 0`);
-          return cb(false, [], { module: moduleName, data: options }, false);
+          return callback(false, [], { module: moduleName, data: options }, false);
         } // Error
         else {
           const response_data = JSON.parse(response.body);
           Logger.error(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page}`);
           return (
-            cb(
+            callback(
               {
                 statusCode: response.statusCode,
                 code: response_data.code,
@@ -159,7 +179,15 @@ module.exports = class ZohoClass {
     });
   }
 
-  updateRecords(moduleName, data, cb, options) {
+  /**
+   * Updates records of a specified  module
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Array} data Array of objects to be sent to ZohoCRM
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @param {Object} options Extra options allowed to send with request
+   * @returns {Promise}
+   */
+  updateRecords(moduleName, data, callback, options) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
@@ -185,11 +213,11 @@ module.exports = class ZohoClass {
               res_counter++;
             });
 
-            cb(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
           } // error
           else {
             const response_data = JSON.parse(response.body);
-            cb(
+            callback(
               {
                 statusCode: response.statusCode,
                 code: response_data.code,
@@ -207,6 +235,14 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Inserts records of a specified module
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Array} data Array of objects to be sent to ZohoCRM
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @param {Object} options Extra options allowed to send with request
+   * @returns {Promise}
+   */
   insertRecords(moduleName, data, callback) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
@@ -269,6 +305,15 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Searches for records of a specified module with a criteria
+   * @param {String} moduleName ZohoCRM Module
+   * @param {String} criteria Criteria to search module with
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @param {Array} data Array of objects if dynamically creating criteria
+   * @param {Object} options Extra options allowed to send with request
+   * @returns {Promise}
+   */
   searchRecords(moduleName, criteria, callback, data, options) {
     data = data || [];
 
@@ -291,7 +336,7 @@ module.exports = class ZohoClass {
       return;
     }
 
-    const _processSearchChunk = (searchData, data, cb) => {
+    const _processSearchChunk = (searchData, data, callback) => {
       Logger.debug(`Searching -- Module: [${searchData.module}] Page: ${searchData.params.page} - Criteria: ${searchData.params.criteria}`);
 
       this.StackPush('MODULES', 'search', searchData, (response) => {
@@ -301,19 +346,19 @@ module.exports = class ZohoClass {
           Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${response_data.data.length} - Criteria: ${searchData.params.criteria}`);
           if (response_data.info.more_records) {
             searchData.params.page = searchData.chunk + searchData.params.page;
-            _processSearchChunk(searchData, data, cb);
-            return cb(false, response_data.data, { module: searchData.module, data: data }, true);
-          } else return cb(false, response_data.data, { module: searchData.module, data: data }, false);
+            _processSearchChunk(searchData, data, callback);
+            return callback(false, response_data.data, { module: searchData.module, data: data }, true);
+          } else return callback(false, response_data.data, { module: searchData.module, data: data }, false);
         } else if (response.statusCode === 204) {
           // No results
           Logger.debug(`Searched -- Module: [${searchData.module}]  Page: ${searchData.params.page} - Response: 0`);
-          return cb(false, [], { module: searchData.module, data: data }, false);
+          return callback(false, [], { module: searchData.module, data: data }, false);
         } // Error
         else {
           if (response.statusCode === 400 || response.statusCode == 429) {
             const response_data = JSON.parse(response.body);
             Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
-            return cb(
+            return callback(
               {
                 statusCode: response.statusCode,
                 code: response_data.code,
@@ -327,7 +372,7 @@ module.exports = class ZohoClass {
           } else {
             const response_data = response;
             Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${JSON.stringify(response_data)}`);
-            return cb(
+            return callback(
               {
                 statusCode: response.statusCode,
                 code: response_data.code,
@@ -402,6 +447,14 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Update or Insert records into specified module by checking for certain fields match what's being sent to ZohoCRM
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Array} data Array of objects to be sent to ZohoCRM
+   * @param {Array} duplicate_check Array of strings to be sent to check for duplication in ZohoCRM
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @returns {Promise}
+   */
   upsertRecords(moduleName, data, duplicate_check, callback) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
@@ -465,13 +518,18 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Deletes records of IDs from specified module in ZohoCRM
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Array} data Ids to delete in ZohoCRM for specified module
+   * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @returns
+   */
   deleteRecords(moduleName, data, callback) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
     let response_array = [];
-
-    // TODO: Data must be array of Ids, check if array of object or array of Ids, assuming for now array of Ids..
 
     return new Promise((resolve, reject) => {
       data_chunks.map((row) => {
@@ -529,6 +587,12 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Lookup specified user profile in ZohoCRM
+   * @param {String} id Profile ID
+   * @param {Object} callback { boolean, [object] }
+   * @returns {Promise}
+   */
   getProfiles(id, callback) {
     id = id || '';
     return new Promise((resolve, reject) => {
@@ -549,18 +613,26 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Share a record with an array of users
+   * @param {String} moduleName ZohoCRM Module
+   * @param {String} id Record Id
+   * @param {Object} data Object permission of user's that will get permission
+   * @param {Object} callback
+   * @returns
+   */
   shareRecord(moduleName, id, data, callback) {
     return new Promise((resolve, reject) => {
       this.StackPush('ACTIONS', 'share', { module: moduleName, id: id, body: data }, (response) => {
         const response_data = JSON.parse(response.body);
 
         if (callback !== undefined) {
-          if (response.statusCode === 200) callback({ success: true, error: false, data: { ...response_data.share[0], details: { entityId: id } } });
-          else callback({ success: false, error: response_data, data: null });
+          if (response.statusCode === 200) callback(false, { ...response_data.share[0], details: { entityId: id } });
+          else callback(response_data, null);
         }
 
-        if (response.statusCode === 200) return resolve({ success: true, error: false, data: { ...response_data.share[0], details: { entityId: id } } });
-        else return resolve({ success: false, error: response_data, data: null });
+        if (response.statusCode === 200) return callback(false, { ...response_data.share[0], details: { entityId: id } });
+        else return reject(response_data);
       });
     });
   }
