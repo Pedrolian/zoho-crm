@@ -1,12 +1,8 @@
 const ZCRMRestClient = require('@pedrolian/zcrmsdk');
 
 module.exports = class Stack {
-  constructor(poolSize, maxAttempts, delayAttempt) {
+  constructor(poolSize) {
     this.PoolSize = !isNaN(Number(poolSize)) ? poolSize : 5;
-
-    this._maxAttempts = !isNaN(Number(maxAttempts)) ? maxAttempts : 5;
-    this._currentAttempt = 0;
-    this._delayAttempt = !isNaN(Number(delayAttempt)) ? delayAttempt : 100;
 
     this._stack = [];
     this._Connections = [];
@@ -21,30 +17,18 @@ module.exports = class Stack {
   }
 
   push(api, method, data, cb) {
-    this._currentAttempt = 0;
     this._stack.push({ api, method, data, cb });
     this._process();
   }
 
   _process() {
+
+    // Return out if no jobs to process
+    if (this._stack.length === 0) return;
+
     // Check if any open connection can grab first from stack
     const availableConns = this._Connections.filter((conn) => !conn.isProcessing);
     if (availableConns.length == 0) return;
-
-    if (availableConns.length == this._Connections.length && this._stack.length === 0) {
-      // Check if stack has been empty for awhile
-      // Come back in n second, and see if still nothing was readded, after n attempts, don't check anymore until new push was added.
-      this._currentAttempt++;
-      Logger.silly(`All connections available, attempts: ${this._currentAttempt} / ${this._maxAttempts}`);
-      if (this._currentAttempt < this._maxAttempts) {
-        setTimeout(() => {
-          this._process();
-        }, this._delayAttempt);
-      }
-      return;
-    }
-
-    if (this._stack.length === 0) return;
 
     //  process data
     const processData = this._stack.shift();
@@ -59,7 +43,6 @@ module.exports = class Stack {
     ZCRMRestClient.API[processData.api][processData.method](processData.data).then((response) => {
       //
       Logger.debug(`#${connection.id} - Finished.`);
-      this._currentAttempt = 0;
       this._Connections[connection.id].isProcessing = false;
       this._process();
       //
