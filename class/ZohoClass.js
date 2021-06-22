@@ -597,8 +597,8 @@ module.exports = class ZohoClass {
     id = id || '';
     return new Promise((resolve, reject) => {
       this.StackPush('SETTINGS', 'getProfiles', { id }, (response) => {
+        const response_data = JSON.parse(response.body);
         if (response.statusCode === 200) {
-          const response_data = JSON.parse(response.body);
           if (callback !== undefined) {
             callback(false, response_data.profiles);
           }
@@ -625,15 +625,33 @@ module.exports = class ZohoClass {
     return new Promise((resolve, reject) => {
       this.StackPush('ACTIONS', 'share', { module: moduleName, id: id, body: data }, (response) => {
         const response_data = JSON.parse(response.body);
-
         if (callback !== undefined) {
           if (response.statusCode === 200) callback(false, { ...response_data.share[0], details: { entityId: id } });
           else callback(response_data, null);
         }
-
-        if (response.statusCode === 200) return callback(false, { ...response_data.share[0], details: { entityId: id } });
+        if (response.statusCode === 200) return resolve({ ...response_data.share[0], details: { entityId: id } });
         else return reject(response_data);
       });
     });
+  }
+
+  /**
+   * Get user info from a specified id
+   * @param {String} id Record Id
+   * @param {Object} callback
+   * @returns
+   */
+  getUser(id, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush('USERS', 'get', { id: id }, (response) => {
+        const response_data = JSON.parse(response.body);
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { ...response_data.users[0], details: { entityId: id } });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({ ...response_data.users[0], details: { entityId: id } });
+        else return reject(response_data);
+      });
+    })
   }
 };
