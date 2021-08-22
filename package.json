@@ -1,5 +1,5 @@
 {
-  "name": "importzoho",
+  "name": "zoho-crm",
   "version": "1.1.15",
   "description": "",
   "main": "scripts/index.js",
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Pedrolian/ImportZoho.git"
+    "url": "git+https://github.com/Pedrolian/zoho-crm.git"
   },
   "author": "Pedrolian",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Pedrolian/ImportZoho/issues"
+    "url": "https://github.com/Pedrolian/zoho-crm/issues"
   },
-  "homepage": "https://github.com/Pedrolian/ImportZoho#readme"
+  "homepage": "https://github.com/Pedrolian/zoho-crm#readme"
 }
