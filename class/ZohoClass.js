@@ -123,7 +123,8 @@ module.exports = class ZohoClass {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
-          Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${response_data.data.length} - HasMore: ${response_data.info.more_records} - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`);
+          const res_data = searchData.module == 'users' ? response_data.users : response_data.data;
+          Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${res_data.length} - HasMore: ${response_data.info.more_records} - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`);
 
           if ((options.headers.hasOwnProperty('If-Modified-Since') && response_data.info.more_records) || (options.hasOwnProperty('all') && response_data.info.more_records)) {
             // Only return more than 200 if options are passed
@@ -131,9 +132,9 @@ module.exports = class ZohoClass {
             options.params.page = options.chunk + options.params.page;
             if (record_tracker_last_page_no_results === null || options.params.page < record_tracker_last_page_no_results) {
               _processRecordChunk(moduleName, options, callback);
-              return callback(false, response_data.data, { module: moduleName, data: options }, true);
-            } else return callback(false, response_data.data, { module: moduleName, data: options }, false);
-          } else return callback(false, response_data.data, { module: moduleName, data: options }, false);
+              return callback(false, res_data, { module: moduleName, data: options }, true);
+            } else return callback(false, res_data, { module: moduleName, data: options }, false);
+          } else return callback(false, res_data, { module: moduleName, data: options }, false);
         } else if (response.statusCode === 404 || response.statusCode === 304 || response.statusCode === 204) {
           // No results
           // Set range so when looping if its still within range of highest non found page it will attempt to get it
@@ -343,12 +344,13 @@ module.exports = class ZohoClass {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
-          Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${response_data.data.length} - Criteria: ${searchData.params.criteria}`);
+          const res_data = searchData.module == 'users' ? response_data.users : response_data.data;
+          Logger.debug(`Searched -- Module: [${searchData.module}] Page: ${searchData.params.page} - Response: ${res_data.length} - Criteria: ${searchData.params.criteria}`);
           if (response_data.info.more_records) {
             searchData.params.page = searchData.chunk + searchData.params.page;
             _processSearchChunk(searchData, data, callback);
-            return callback(false, response_data.data, { module: searchData.module, data: data }, true);
-          } else return callback(false, response_data.data, { module: searchData.module, data: data }, false);
+            return callback(false, res_data, { module: searchData.module, data: data }, true);
+          } else return callback(false, res_data, { module: searchData.module, data: data }, false);
         } else if (response.statusCode === 204) {
           // No results
           Logger.debug(`Searched -- Module: [${searchData.module}]  Page: ${searchData.params.page} - Response: 0`);
