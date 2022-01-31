@@ -123,7 +123,7 @@ module.exports = class ZohoClass {
         if (response.statusCode === 200) {
           // Found something
           const response_data = JSON.parse(response.body);
-          const res_data = searchData.module == 'users' ? response_data.users : response_data.data;
+          const res_data = moduleName == 'users' ? response_data.users : response_data.data;
           Logger.debug(`GetRecords -- Module: [${moduleName}] Page: ${options.params.page} - Response: ${res_data.length} - HasMore: ${response_data.info.more_records} - Last Page: ${record_tracker_last_page_no_results} - ${JSON.stringify(options.headers)}`);
 
           if ((options.headers.hasOwnProperty('If-Modified-Since') && response_data.info.more_records) || (options.hasOwnProperty('all') && response_data.info.more_records)) {
