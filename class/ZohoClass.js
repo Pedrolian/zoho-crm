@@ -656,4 +656,24 @@ module.exports = class ZohoClass {
       });
     })
   }
+
+  /**
+   * Get Field metadata from a specific module
+   * @param {String} moduleName ZohoCRM Module
+   * @param {Object} callback
+   * @returns
+   */
+  getModuleFields(moduleName, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush('SETTINGS', 'getFields', { module: moduleName }, (response) => {
+        const response_data = JSON.parse(response.body);
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { module: moduleName, ...response_data });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({  module: moduleName, ...response_data });
+        else return reject(response_data);
+      });
+    });
+  }
 };
