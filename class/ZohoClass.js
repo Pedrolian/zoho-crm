@@ -200,7 +200,7 @@ module.exports = class ZohoClass {
 
         this.StackPush('MODULES', 'put', { module: moduleName, body: { data: row }, ...options }, (response) => {
           counter++;
-          if (response.statusCode === 200 || response.statusCode === 202) {
+          if (response.statusCode === 200 || response.statusCode === 202 || response.statusCode === 207 || response.statusCode === 400) {
             const response_data = JSON.parse(response.body).data;
             response_data.map((res) => {
               if (res.status == 'success') {
