@@ -188,15 +188,15 @@ module.exports = class ZohoClass {
    * @param {Object} options Extra options allowed to send with request
    * @returns {Promise}
    */
-  updateRecords(moduleName, data, callback, options) {
-    const data_chunks = _.chunk(data, 100);
-    let counter = 0;
-
-    return new Promise((resolve, reject) => {
-      data_chunks.map((row) => {
+    updateRecords(moduleName, data, callback, options) {
+      const data_chunks = _.chunk(data, 100);
+      let counter = 0;
+      let response_array = [];
+      return new Promise((resolve, reject) => {
+        data_chunks.map((row) => {
         let res_counter = 0;
         let errorData = [],
-          successData = [];
+        successData = [];
 
         this.StackPush('MODULES', 'put', { module: moduleName, body: { data: row }, ...options }, (response) => {
           counter++;
@@ -214,27 +214,41 @@ module.exports = class ZohoClass {
               res_counter++;
             });
 
-            callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            if (callback !== undefined) callback(false, { success: successData, error: errorData }, { module: moduleName, data: row });
+            response_array = response_array.concat({ error: false, response: { success: successData, error: errorData }, data: { module: moduleName, data: row } });
           } // error
           else {
             const response_data = JSON.parse(response.body);
-            callback(
-              {
+            if (callback !== undefined) {
+              callback(
+                {
+                  statusCode: response.statusCode,
+                  code: response_data.code,
+                  message: response_data.message,
+                  details: response_data.details
+                },
+                { success: successData, error: errorData },
+                { module: moduleName, data: row }
+              );
+            }
+            response_array = response_array.concat({
+              error: {
                 statusCode: response.statusCode,
                 code: response_data.code,
                 message: response_data.message,
                 details: response_data.details
               },
-              { success: successData, error: errorData },
-              { module: moduleName, data: row }
-            );
+              response: { success: successData, error: errorData },
+              data: { module: moduleName, data: row }
+            });
           }
 
-          if (counter == data_chunks.length) return resolve();
+          if (counter == data_chunks.length) return resolve(response_array);
         });
+        });
+
       });
-    });
-  }
+    }
 
   /**
    * Inserts records of a specified module
