@@ -690,4 +690,25 @@ module.exports = class ZohoClass {
       });
     });
   }
+
+  /**
+   * Upload file to a specific record in Zoho CRM
+   * @param {String} moduleName ZohoCRM Module
+   * @param {String} id Record  Id
+   * @param {File Stream} data
+   * @returns
+   */
+   attachFile(moduleName, id, data, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush('ATTACHMENTS', 'uploadFile', { module: moduleName, id: id, x_file_content: data }, (response) => {
+        const response_data = JSON.parse(response.body);
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { module: moduleName, ...response_data });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({  module: moduleName, ...response_data });
+        else return reject(response_data);
+      });
+    });
+  }
 };
