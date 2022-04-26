@@ -469,9 +469,10 @@ module.exports = class ZohoClass {
    * @param {Array} data Array of objects to be sent to ZohoCRM
    * @param {Array} duplicate_check Array of strings to be sent to check for duplication in ZohoCRM
    * @param {Object} callback { error: false | { statusCode, code, message, details }, response: null | ZohoCRM Object, dataOriginallySent }
+   * @param {Object} options Extra options allowed to send with request
    * @returns {Promise}
    */
-  upsertRecords(moduleName, data, duplicate_check, callback) {
+  upsertRecords(moduleName, data, duplicate_check, callback, options) {
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
@@ -485,7 +486,7 @@ module.exports = class ZohoClass {
         let errorData = [],
           successData = [];
 
-        this.StackPush('MODULES', 'upsert', { module: moduleName, body: { data: row, duplicate_check_fields: duplicate_check } }, (response) => {
+        this.StackPush('MODULES', 'upsert', { module: moduleName, body: { data: row, duplicate_check_fields: duplicate_check, ...options } }, (response) => {
           counter++;
           if (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202) {
             const response_data = JSON.parse(response.body).data;
