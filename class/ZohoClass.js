@@ -189,6 +189,7 @@ module.exports = class ZohoClass {
    * @returns {Promise}
    */
     updateRecords(moduleName, data, callback, options) {
+      options = options || {};
       const data_chunks = _.chunk(data, 100);
       let counter = 0;
       let response_array = [];
@@ -258,7 +259,8 @@ module.exports = class ZohoClass {
    * @param {Object} options Extra options allowed to send with request
    * @returns {Promise}
    */
-  insertRecords(moduleName, data, callback) {
+  insertRecords(moduleName, data, callback, options) {
+    options = options || {};
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
@@ -473,6 +475,7 @@ module.exports = class ZohoClass {
    * @returns {Promise}
    */
   upsertRecords(moduleName, data, duplicate_check, callback, options) {
+    options = options || {};
     const data_chunks = _.chunk(data, 100);
     let counter = 0;
 
