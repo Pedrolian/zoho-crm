@@ -408,7 +408,8 @@ module.exports = class ZohoClass {
 
     return new Promise((resolve, reject) => {
       // Check if criteria is below max allowed
-      const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$/À-ÿ–+()% ]+)\)/gim);
+      // const criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$/À-ÿ–+()% ]+)\)/gim);
+      const criteria_matches = criteria.match(/\(([^()]+)\)/gim);
       if (criteria_matches.length > 10) {
         if (callback !== undefined)
           callback({
@@ -423,7 +424,8 @@ module.exports = class ZohoClass {
 
       searchData.map((row) => {
         if (data.length) {
-          const search_criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$/À-ÿ–+()% ]+)\)/gim);
+          // const search_criteria_matches = criteria.match(/\(([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$ ]+):([A-Z0-9_.\-:@$/À-ÿ–+()% ]+)\)/gim);
+          const search_criteria_matches = criteria.match(/\(([^()]+)\)/gim);
           //const chunk_size = data.length * search_criteria_matches.length < 10 ? 10 : (10 / search_criteria_matches.length) >> 0;
           const chunk_size = data.length * search_criteria_matches.length < 10 ? (this.StackClass.PoolSize < 10 && this.StackClass.PoolSize != 1 ? this.StackClass.PoolSize : 10) : (10 / search_criteria_matches.length) >> 0;
           const data_chunks = _.chunk(data, chunk_size);
