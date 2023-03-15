@@ -717,4 +717,49 @@ module.exports = class ZohoClass {
       });
     });
   }
+
+  /**
+   * Get attachments from a specific document in Zoho CRM
+   * @param {String} moduleName ZohoCRM Module
+   * @param {String} id Record  Id
+   * @param {String} documentId Document Id
+   * @returns
+   */
+   listFile(moduleName, id, callback) {
+    return new Promise((resolve, reject) => {
+      // TODO: Recursive get all attachments by validating info: { per_page: 200, count: 1, page: 1, more_records: true } in response
+      this.StackPush('ATTACHMENTS', 'listFile', { module: moduleName, id: id }, (response) => {
+        const response_data = JSON.parse(response.body);
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { module: moduleName, data: response_data.data });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({ module: moduleName, data:  response_data.data });
+        else return reject(response_data);
+      });
+    });
+  }
+
+  /**
+   * Download file from a specific document in Zoho CRM
+   * @param {String} moduleName ZohoCRM Module
+   * @param {String} id Record  Id
+   * @param {String} documentId Document Id
+   * @returns
+   */
+   downloadFile(moduleName, id, documentId, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush('ATTACHMENTS', 'downloadFile', { module: moduleName, id: id, relatedId: documentId }, (response) => {
+        const response_data = (response.body);
+        const response_filename = response.filename
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { filename: response_filename, data: response_data });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({ filename: response_filename, data: response_data });
+        else return reject(response_data);
+      });
+    });
+  }
+
 };
