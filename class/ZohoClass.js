@@ -702,6 +702,7 @@ module.exports = class ZohoClass {
    * @param {String} moduleName ZohoCRM Module
    * @param {String} id Record  Id
    * @param {File Stream} data
+   * @param {Object} callback
    * @returns
    */
    attachFile(moduleName, id, data, callback) {
@@ -723,6 +724,7 @@ module.exports = class ZohoClass {
    * @param {String} moduleName ZohoCRM Module
    * @param {String} id Record  Id
    * @param {String} documentId Document Id
+   * @param {Object} callback
    * @returns
    */
    listFile(moduleName, id, callback) {
@@ -745,6 +747,7 @@ module.exports = class ZohoClass {
    * @param {String} moduleName ZohoCRM Module
    * @param {String} id Record  Id
    * @param {String} documentId Document Id
+   * @param {Object} callback
    * @returns
    */
    downloadFile(moduleName, id, documentId, callback) {
@@ -759,6 +762,99 @@ module.exports = class ZohoClass {
         if (response.statusCode === 200) return resolve({ filename: response_filename, data: response_data });
         else return reject(response_data);
       });
+    });
+  }
+
+  /**
+   * Queries Zoho CRM
+   * @param {String} query COQL Query
+   * @param {Object} options Extra options allowed to send with request
+   * @param {Object} callback
+   * @returns
+   */
+  coql(query, options, callback) {
+    options = ToOptions.parse(options);
+    options.limit = options.hasOwnProperty('limit') ? options.limit : 200;
+    options.offset = options.hasOwnProperty('offset') ? options.offset : 0;
+    options.all = options.hasOwnProperty('all') ? options.all : false;
+    options.chunk = options.hasOwnProperty('chunk') ? options.chunk : 1;
+
+    let returnData = [];
+
+    return new Promise((resolve, reject) => {
+      let lastOffsetWithNoResults = null;
+
+      const fetchData = async (offset, chunkIndex) => {
+        const queryWithLimit = `${query} LIMIT ${options.limit} OFFSET ${offset}`;
+        Logger.debug(`Coql -- Query: [${queryWithLimit}]`);
+
+        return new Promise((resolve, reject) => {
+          this.StackPush('MODULES', 'coql', { body: { select_query: queryWithLimit } }, async (response) => {
+
+            if(response.statusCode === 200) {
+              const response_data = JSON.parse(response.body);
+
+              if (callback !== undefined) {
+                callback(false, response_data.data, { query, queryWithLimit });
+              }
+
+              if (options.all && response_data.info && response_data.info.more_records) {
+                if (!response_data.data.length) {
+                  if (lastOffsetWithNoResults === null || offset < lastOffsetWithNoResults) {
+                    lastOffsetWithNoResults = offset;
+                  }
+                  return resolve(returnData);
+                }
+                const nextOffset = offset + (options.limit * options.chunk);
+                const nextChunkIndex = chunkIndex + 1;
+                const nextData = await fetchData(nextOffset, nextChunkIndex);
+                response_data.data.push(...nextData);
+              }
+
+              return resolve(response_data.data);
+            }
+            else if(response.statusCode == 204) {
+              Logger.warn(`Coql -- Query: [${queryWithLimit}] -- No results`);
+              if (callback !== undefined) {
+                callback(false, returnData, { query, queryWithLimit });
+              }
+              return resolve(returnData);
+            }
+            else {
+              const error = JSON.parse(response.body);
+              Logger.error(`Coql -- Query: [${queryWithLimit}] -- Error: ${JSON.stringify(error)}`);
+              if (callback !== undefined) {
+                callback({
+                  statusCode: response.statusCode,
+                  code: error.code,
+                  message: error.message,
+                  details: error.details
+                }, returnData, { query, queryWithLimit });
+              }
+              return reject(error);
+            }
+
+          });
+        });
+      };
+
+      const chunkPromises = [];
+      for (let i = 0; i < options.chunk; i++) {
+        const offset = options.offset + (options.limit * i);
+        chunkPromises.push(fetchData(offset, i));
+      }
+
+      Promise.all(chunkPromises)
+        .then((chunksData) => {
+          let data = [];
+          chunksData.forEach((chunkData) => {
+            data.push(...chunkData);
+          });
+          resolve(data);
+        })
+        .catch((error) => {
+          reject(error);
+        });
     });
   }
 
