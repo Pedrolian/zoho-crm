@@ -858,4 +858,34 @@ module.exports = class ZohoClass {
     });
   }
 
+  /**
+   * Download file from Zoho File System (ZFS)
+   * @param {String} id File Id
+   * @param {Object} callback
+   * @returns
+   */
+   downloadFileZFS(id, callback) {
+    return new Promise((resolve, reject) => {
+      this.StackPush('ATTACHMENTS', 'downloadFileZFS', { id: id }, (response) => {
+        const response_data = (response.body);
+
+        if(response_data === '') {
+          if (callback !== undefined) {
+            callback('File not found.', null);
+          }
+          return reject('File not found.');
+        }
+
+        const response_filename = response.filename
+        if (callback !== undefined) {
+          if (response.statusCode === 200) callback(false, { filename: response_filename, data: response_data });
+          else callback(response_data, null);
+        }
+        if (response.statusCode === 200) return resolve({ filename: response_filename, data: response_data });
+        else return reject(response_data);
+
+      });
+    });
+  }
+
 };
