@@ -1,6 +1,20 @@
 const removeDiacritics = require('./RemoveDiactric.js');
 
-const cleanCriteria = (val) => encodeURIComponent(val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/(?=[(),])/g, '\\').replace(/\(/g, "%28").replace(/\)/g, "%29"))
+// const cleanCriteria = (val) => encodeURIComponent(val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/(?=[(),])/g, '\\').replace(/\(/g, "%28").replace(/\)/g, "%29"))
+const cleanCriteria = (val) => {
+  if(typeof val === "string") {
+    return encodeURIComponent(
+      val
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/(?=[(),])/g, '\\')
+        .replace(/\(/g, "%28")
+        .replace(/\)/g, "%29")
+    )
+  } else {
+    return encodeURIComponent( val )
+  }
+}
 
 module.exports.replace = function (data, str, skipDiacritics) {
 
